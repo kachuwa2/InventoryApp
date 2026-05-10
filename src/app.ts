@@ -2,36 +2,28 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/errorHandler';
+import authRoutes from './modules/auth/auth.routes';
 
-// Load environment variables from .env file
-// Must be called before anything that uses process.env
 dotenv.config();
 
 const app = express();
 
-// Tells Express to parse incoming JSON request bodies
-// Without this, req.body would be undefined
 app.use(express.json());
-
-// Lets Express read cookies from incoming requests
-// Needed for the refresh token cookie
 app.use(cookieParser());
 
-// Health check endpoint
-// Always useful to verify the server is running
+// ─── Health check ────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
   });
 });
 
-// Routes will be added here as we build each module
+// ─── Routes ──────────────────────────────────────────────
+app.use('/api/auth', authRoutes);
 
-// Error handler MUST be the last middleware registered
-// Express identifies it by its four parameters
-
+// ─── Error handler — must be last ────────────────────────
 app.use(errorHandler);
 
 export default app;
