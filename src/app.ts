@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './modules/auth/auth.routes';
 import categoriesRoutes from './modules/categories/categories.routes';
+import suppliersRoutes from './modules/suppliers/suppliers.routes';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.get('/health', (req, res) => {
 // ─── Routes ──────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/suppliers',  suppliersRoutes);
 
 // ─── Error handler — must be last ────────────────────────
 app.use(errorHandler);
