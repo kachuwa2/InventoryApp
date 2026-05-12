@@ -27,6 +27,9 @@ model User {
   deletedAt    DateTime?  @map("deleted_at")
   auditLogs    AuditLog[]
 
+    // A user can be responsible for many price changes
+  priceChanges ProductPriceHistory[]
+
   @@map("users")
 }
 
@@ -119,11 +122,13 @@ model Product {
   
   // SKU = Stock Keeping Unit. Your internal code.
   // e.g. "RIC-001". Must be unique across all products.
+
   sku          String    @unique
 
   // The barcode string — what a scanner reads.
   // e.g. "5012345678900". The actual barcode IMAGE
   // is generated on demand, never stored in the DB.
+
   barcode      String?   @unique
 
   description  String?
@@ -131,6 +136,7 @@ model Product {
 
   // When stock falls to this level, the system
   // alerts the manager to reorder
+
   reorderPoint Decimal   @default(0) @map("reorder_point") @db.Decimal(10, 2)
 
   // Foreign keys — every product must belong
@@ -146,5 +152,41 @@ model Product {
   updatedAt    DateTime  @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at")
 
+   // A product can have many price history records
+  priceHistory ProductPriceHistory[]
+
   @@map("products")
+}
+
+// ─────────────────────────────────────────────────────────
+// PRODUCT PRICE HISTORY
+// This table is APPEND ONLY. When a price changes, we
+// INSERT a new row — we never UPDATE an existing one.
+// This gives us a complete timeline of every price change
+// for every product, who made it, and when it took effect.
+// ─────────────────────────────────────────────────────────
+
+model ProductPriceHistory {
+  id        String   @id @default(uuid())
+
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id])
+
+  // The three prices we track for every product.
+  // Decimal(12,2) means up to 12 digits total, 2 after
+  // the decimal point. This stores money safely in PostgreSQL
+  // without the floating point errors you get with Float.
+  costPrice      Decimal @map("cost_price")      @db.Decimal(12, 2)
+  retailPrice    Decimal @map("retail_price")    @db.Decimal(12, 2)
+  wholesalePrice Decimal @map("wholesale_price") @db.Decimal(12, 2)
+
+  // Who changed the price and when it became active.
+  // This is what makes the history traceable.
+  changedById  String   @map("changed_by_id")
+  changedBy    User     @relation(fields: [changedById], references: [id])
+  effectiveFrom DateTime @default(now()) @map("effective_from")
+
+  note String? // optional reason for the price change
+
+  @@map("product_price_history")
 }
