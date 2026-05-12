@@ -45,3 +45,106 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+// ─────────────────────────────────────────────
+// CATEGORIES
+// A category can have a parent category, making
+// this a tree structure. For example:
+// Food → Grains → Rice
+// The parent_id points back to the same table —
+// this is called a self-referencing relation.
+// ─────────────────────────────────────────────
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+
+  // Self-referencing relation — a category can
+  // belong to another category (its parent)
+  parentId    String?    @map("parent_id")
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+
+  // A category can have many products
+  products    Product[]
+
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  deletedAt   DateTime?  @map("deleted_at")
+
+  @@map("categories")
+}
+
+// ─────────────────────────────────────────────
+// SUPPLIERS
+// The companies or people you buy stock from.
+// Credit limit is how much you can owe them
+// before they stop supplying you.
+// ─────────────────────────────────────────────
+
+model Supplier {
+  id            String     @id @default(uuid())
+  name          String
+  contactPerson String?    @map("contact_person")
+  phone         String?
+  email         String?
+  address       String?
+
+  // How much credit this supplier extends to us.
+  // Stored as Decimal, never Float — floats are
+  // imprecise for money (0.1 + 0.2 = 0.30000000004)
+  creditLimit   Decimal    @default(0) @map("credit_limit") @db.Decimal(12, 2)
+
+  // A supplier can supply many products
+  products      Product[]
+
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  deletedAt     DateTime?  @map("deleted_at")
+
+  @@map("suppliers")
+}
+
+// ─────────────────────────────────────────────
+// PRODUCTS
+// The core of the entire system. Every other
+// module — inventory, sales, purchases — 
+// references products.
+// ─────────────────────────────────────────────
+
+model Product {
+  id           String    @id @default(uuid())
+  name         String
+  
+  // SKU = Stock Keeping Unit. Your internal code.
+  // e.g. "RIC-001". Must be unique across all products.
+  sku          String    @unique
+
+  // The barcode string — what a scanner reads.
+  // e.g. "5012345678900". The actual barcode IMAGE
+  // is generated on demand, never stored in the DB.
+  barcode      String?   @unique
+
+  description  String?
+  unit         String    @default("piece") // e.g. piece, kg, litre, box
+
+  // When stock falls to this level, the system
+  // alerts the manager to reorder
+  reorderPoint Decimal   @default(0) @map("reorder_point") @db.Decimal(10, 2)
+
+  // Foreign keys — every product must belong
+  // to exactly one category and one supplier
+  
+  categoryId   String    @map("category_id")
+  category     Category  @relation(fields: [categoryId], references: [id])
+
+  supplierId   String    @map("supplier_id")
+  supplier     Supplier  @relation(fields: [supplierId], references: [id])
+
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@map("products")
+}

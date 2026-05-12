@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from './auth.service';
+import { getIp } from '../../utils/request';
 
 // Controllers are intentionally thin.
 // They only handle HTTP concerns:
@@ -14,7 +15,7 @@ export async function register(
   next: NextFunction
 ) {
   try {
-    const ip = req.ip || 'unknown';
+    const ip = getIp(req);
     const user = await authService.register(req.body, ip);
 
     res.status(201).json({
@@ -33,7 +34,7 @@ export async function login(
   next: NextFunction
 ) {
   try {
-    const ip = req.ip || 'unknown';
+    const ip = getIp(req);
     const result = await authService.login(req.body, ip);
 
     // Refresh token goes in an httpOnly cookie.
