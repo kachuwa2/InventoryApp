@@ -30,6 +30,8 @@ model User {
     // A user can be responsible for many price changes
   priceChanges ProductPriceHistory[]
 
+  stockMovements StockMovement[]
+
   @@map("users")
 }
 
@@ -155,6 +157,8 @@ model Product {
    // A product can have many price history records
   priceHistory ProductPriceHistory[]
 
+  stockMovements StockMovement[]
+
   @@map("products")
 }
 
@@ -189,4 +193,66 @@ model ProductPriceHistory {
   note String? // optional reason for the price change
 
   @@map("product_price_history")
+}
+
+// ─────────────────────────────────────────────────────────
+// STOCK MOVEMENTS — THE LEDGER
+// This table is the heart of the inventory system.
+// Every single time stock moves — in or out — for any
+// reason, a new row is inserted here. Rows are NEVER
+// updated or deleted. This is an append-only ledger.
+//
+// Current stock for any product is always computed as:
+// SUM of all movements for that product where
+// positive types (purchase, return_in, adjustment_in)
+// are added and negative types (sale, adjustment_out)
+// are subtracted.
+// ─────────────────────────────────────────────────────────
+
+enum MovementType {
+  purchase        // stock came in via a purchase order
+  sale            // stock went out via a sale
+  adjustment_in   // manual correction — stock added
+  adjustment_out  // manual correction — stock removed
+  return_in       // customer returned goods — stock back in
+  return_out      // we returned goods to supplier — stock out
+}
+
+model StockMovement {
+  id          String       @id @default(uuid())
+
+  productId   String       @map("product_id")
+  product     Product      @relation(fields: [productId], references: [id])
+
+  // Movement type determines if this adds or removes stock.
+  // purchase, adjustment_in, return_in → add to stock
+  // sale, adjustment_out, return_out   → remove from stock
+  type        MovementType
+
+  // Always stored as a POSITIVE number regardless of direction.
+  // The type field tells us the direction, not the sign.
+  // This makes queries and reports much cleaner.
+  quantity    Decimal      @db.Decimal(10, 2)
+
+  // The cost per unit at the time of this movement.
+  // Critical for inventory valuation and profit calculations.
+  // A frying pan might cost $8.50 today but $9.50 next month.
+  // We record what it actually cost at the time of movement.
+  unitCost    Decimal?     @map("unit_cost") @db.Decimal(12, 2)
+
+  // Polymorphic reference — this movement can be linked to
+  // a purchase order, a sale order, or a manual adjustment.
+  // We store the ID and the type of record it points to.
+  referenceId   String?    @map("reference_id")
+  referenceType String?    @map("reference_type")
+
+  // Why this movement happened — required for adjustments
+  notes       String?
+
+  performedById String     @map("performed_by_id")
+  performedBy   User       @relation(fields: [performedById], references: [id])
+
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@map("stock_movements")
 }
