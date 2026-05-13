@@ -31,6 +31,8 @@ model User {
   priceChanges ProductPriceHistory[]
 
   stockMovements StockMovement[]
+  purchaseOrdersCreated  PurchaseOrder[] @relation("POCreatedBy")
+  purchaseOrdersApproved PurchaseOrder[] @relation("POApprovedBy")
 
   @@map("users")
 }
@@ -108,6 +110,8 @@ model Supplier {
   updatedAt     DateTime   @updatedAt @map("updated_at")
   deletedAt     DateTime?  @map("deleted_at")
 
+  purchaseOrders PurchaseOrder[]
+
   @@map("suppliers")
 }
 
@@ -158,6 +162,7 @@ model Product {
   priceHistory ProductPriceHistory[]
 
   stockMovements StockMovement[]
+  purchaseOrderItems PurchaseOrderItem[]
 
   @@map("products")
 }
@@ -255,4 +260,86 @@ model StockMovement {
   createdAt   DateTime     @default(now()) @map("created_at")
 
   @@map("stock_movements")
+}
+
+// ─────────────────────────────────────────────────────────
+// PURCHASE ORDERS
+// A purchase order is a formal request to a supplier
+// to deliver goods at an agreed price.
+// It moves through states: draft → approved → received
+// ─────────────────────────────────────────────────────────
+
+enum PurchaseOrderStatus {
+  draft
+  approved
+  received
+  cancelled
+}
+
+model PurchaseOrder {
+  id         String              @id @default(uuid())
+
+  supplierId String              @map("supplier_id")
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+
+  status     PurchaseOrderStatus @default(draft)
+
+  // Optional reference number from the supplier's system
+  // e.g. "SUP-INV-2026-001"
+  supplierReference String?      @map("supplier_reference")
+
+  notes      String?
+
+  // Who created the order and who approved it.
+  // These can be different people — a manager creates,
+  // an admin approves. This separation of duties
+  // is a basic financial control.
+  createdById  String            @map("created_by_id")
+  createdBy    User              @relation("POCreatedBy", fields: [createdById], references: [id])
+
+  approvedById String?           @map("approved_by_id")
+  approvedBy   User?             @relation("POApprovedBy", fields: [approvedById], references: [id])
+
+  approvedAt   DateTime?         @map("approved_at")
+  expectedAt   DateTime?         @map("expected_at")
+  receivedAt   DateTime?         @map("received_at")
+
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  items        PurchaseOrderItem[]
+
+  @@map("purchase_orders")
+}
+
+// ─────────────────────────────────────────────────────────
+// PURCHASE ORDER ITEMS
+// Each line on the purchase order represents one product,
+// how many were ordered, and at what cost.
+// When stock is received, quantityReceived is updated
+// and a stock movement is created.
+// ─────────────────────────────────────────────────────────
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+
+  purchaseOrderId String        @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+
+  productId       String        @map("product_id")
+  product         Product       @relation(fields: [productId], references: [id])
+
+  // How many we ordered vs how many actually arrived.
+  // These can differ — supplier might short-ship.
+  quantityOrdered  Decimal      @map("quantity_ordered")  @db.Decimal(10, 2)
+  quantityReceived Decimal      @default(0) @map("quantity_received") @db.Decimal(10, 2)
+
+  // The agreed price per unit for this order.
+  // This becomes the unitCost on the stock movement
+  // when goods are received.
+  unitCost         Decimal      @map("unit_cost") @db.Decimal(12, 2)
+
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  @@map("purchase_order_items")
 }
