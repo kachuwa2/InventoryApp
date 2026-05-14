@@ -34,6 +34,8 @@ model User {
   purchaseOrdersCreated  PurchaseOrder[] @relation("POCreatedBy")
   purchaseOrdersApproved PurchaseOrder[] @relation("POApprovedBy")
 
+  salesOrders SalesOrder[]
+
   @@map("users")
 }
 
@@ -163,6 +165,7 @@ model Product {
 
   stockMovements StockMovement[]
   purchaseOrderItems PurchaseOrderItem[]
+  salesOrderItems SalesOrderItem[]
 
   @@map("products")
 }
@@ -342,4 +345,116 @@ model PurchaseOrderItem {
   createdAt        DateTime     @default(now()) @map("created_at")
 
   @@map("purchase_order_items")
+}
+
+// ─────────────────────────────────────────────────────────
+// CUSTOMERS
+// Retail customers buy individual items at retail price.
+// Wholesale customers buy in bulk at wholesale price.
+// Walk-in customers have no account — retail price applies.
+// ─────────────────────────────────────────────────────────
+
+enum CustomerType {
+  retail
+  wholesale
+}
+
+model Customer {
+  id          String       @id @default(uuid())
+  name        String
+  phone       String?      @unique
+  email       String?      @unique
+  address     String?
+  type        CustomerType @default(retail)
+
+  // Credit limit — how much this customer can owe us
+  // before we stop extending credit
+  creditLimit Decimal      @default(0) @map("credit_limit") @db.Decimal(12, 2)
+
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  deletedAt   DateTime?    @map("deleted_at")
+
+  salesOrders SalesOrder[]
+
+  @@map("customers")
+}
+
+// ─────────────────────────────────────────────────────────
+// SALES ORDERS
+// Created when a cashier processes a sale at the POS
+// or when a wholesale order is placed.
+// ─────────────────────────────────────────────────────────
+
+enum SalesOrderStatus {
+  completed
+  returned
+  partial_return
+}
+
+model SalesOrder {
+  id         String           @id @default(uuid())
+
+  // Customer is optional — walk-in customers have no account
+  customerId String?          @map("customer_id")
+  customer   Customer?        @relation(fields: [customerId], references: [id])
+
+  // retail or wholesale — determines which price is used
+  type       CustomerType     @default(retail)
+  status     SalesOrderStatus @default(completed)
+
+  // Discount percentage applied to the whole order
+  // e.g. 10 means 10% off
+  discount   Decimal          @default(0) @db.Decimal(5, 2)
+
+  // Total amount after discount — stored at time of sale
+  // Never recomputed from line items after the fact
+  totalAmount Decimal         @map("total_amount") @db.Decimal(12, 2)
+
+  notes      String?
+
+  createdById String          @map("created_by_id")
+  createdBy   User            @relation(fields: [createdById], references: [id])
+
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  items      SalesOrderItem[]
+
+  @@map("sales_orders")
+}
+
+// ─────────────────────────────────────────────────────────
+// SALES ORDER ITEMS
+// Each line on the sale represents one product sold.
+// We store the unit price AT THE TIME OF SALE — not a
+// reference to the current price. This is critical.
+// If the price changes tomorrow, historical invoices
+// must still show what was charged at the time.
+// ─────────────────────────────────────────────────────────
+
+model SalesOrderItem {
+  id           String     @id @default(uuid())
+
+  salesOrderId String     @map("sales_order_id")
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id])
+
+  productId    String     @map("product_id")
+  product      Product    @relation(fields: [productId], references: [id])
+
+  quantity     Decimal    @db.Decimal(10, 2)
+
+  // Price snapshotted at time of sale
+  // This never changes even if the product price changes later
+  unitPrice    Decimal    @map("unit_price") @db.Decimal(12, 2)
+
+  // Discount on this specific line item
+  discountPct  Decimal    @default(0) @map("discount_pct") @db.Decimal(5, 2)
+
+  // Line total = (unitPrice × quantity) - discount
+  lineTotal    Decimal    @map("line_total") @db.Decimal(12, 2)
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@map("sales_order_items")
 }
