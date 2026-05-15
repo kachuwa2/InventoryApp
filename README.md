@@ -31,6 +31,7 @@
 | **ORM** | Prisma 7.8.0 |
 | **Validation** | Zod 4.4.2 |
 | **Authentication** | JWT + bcryptjs |
+| **Testing** | Jest 30 + ts-jest + Supertest |
 
 ## Quick Start
 
@@ -44,7 +45,7 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/inventory_system.git
+git clone https://github.com/Pensive25/inventory_system.git
 cd inventory_system
 
 # Install dependencies
@@ -56,6 +57,10 @@ cp .env.example .env
 
 # Initialize database
 npx prisma migrate dev --name init
+npx prisma generate --config prisma.config.mjs
+
+# (Optional) Seed with realistic kitchen utensil data
+npm run seed
 
 # Start development server
 npm run dev
@@ -81,6 +86,12 @@ npm run build
 # Run production build
 npm start
 
+# Run integration tests (uses inventory_db_test, never inventory_db)
+npm test
+
+# Seed the development database
+npm run seed
+
 # Open database browser
 npx prisma studio --config prisma.config.mjs
 
@@ -98,25 +109,41 @@ inventory_system/
 │   ├── config/database.ts      # Database initialization
 │   ├── middleware/             # Authentication, validation, error handling
 │   ├── modules/                # Feature modules (9 total)
-│   │   ├── auth/              # User authentication
-│   │   ├── products/          # Product catalog
-│   │   ├── inventory/         # Stock tracking
-│   │   ├── purchases/         # Purchase orders
-│   │   ├── sales/             # Point-of-sale
-│   │   └── ... (4 more modules)
+│   │   ├── auth/
+│   │   ├── categories/
+│   │   ├── customers/
+│   │   ├── inventory/
+│   │   ├── products/
+│   │   ├── purchases/
+│   │   ├── reports/
+│   │   ├── sales/
+│   │   └── suppliers/
 │   ├── types/                  # TypeScript type definitions
 │   └── utils/                  # Helper utilities
+├── __tests__/                  # Integration tests (18 tests, 5 suites)
+│   ├── helpers/setup.ts        # app, db, cleanDb(), registerAdmin()
+│   ├── auth.test.ts
+│   ├── products.test.ts
+│   ├── inventory.test.ts
+│   ├── purchases.test.ts
+│   └── sales.test.ts
 ├── prisma/
 │   ├── schema.prisma           # Database schema
+│   ├── seed.ts                 # Seed data (10 products, 6 POs, 20 sales)
 │   └── migrations/             # Migration history
 ├── SPECS/                      # Complete documentation
-│   ├── PROJECT_SPEC.md         # Project overview
+│   ├── PROJECT_SPEC.md         # Project overview and setup
 │   ├── DATABASE_SPEC.md        # Database schema details
 │   ├── API_SPEC.md             # Complete API reference
 │   └── ARCHITECTURE_SPEC.md    # System architecture
-├── tsconfig.json              # TypeScript configuration
-├── package.json               # Dependencies
-└── .env                       # Environment variables (not in git)
+├── jest.config.ts              # Jest configuration
+├── jest.global-setup.js        # Creates inventory_db_test, deploys migrations
+├── jest.env.js                 # Loads .env.test for tests
+├── tsconfig.test.json          # TypeScript config for tests
+├── .env.test                   # Test environment (inventory_db_test)
+├── tsconfig.json               # TypeScript configuration
+├── package.json                # Dependencies
+└── .env                        # Environment variables (not in git)
 ```
 
 ## API Endpoints Overview
@@ -194,6 +221,30 @@ Complete documentation is available in the [SPECS](SPECS/) directory:
 - [DATABASE_SPEC.md](SPECS/DATABASE_SPEC.md) - Complete schema documentation
 - [API_SPEC.md](SPECS/API_SPEC.md) - Full REST API reference (35+ endpoints)
 - [ARCHITECTURE_SPEC.md](SPECS/ARCHITECTURE_SPEC.md) - System design and patterns
+
+## Testing
+
+Integration tests run against a dedicated `inventory_db_test` database and never touch the development database.
+
+```bash
+npm test
+```
+
+The test setup automatically:
+1. Creates `inventory_db_test` if it doesn't exist
+2. Deploys all Prisma migrations
+3. Loads `.env.test` before any test modules import
+
+| Suite | Tests | What it covers |
+|-------|-------|----------------|
+| `auth.test.ts` | 7 | Register 201/409/400, login 200/401, GET /me 200/401 |
+| `products.test.ts` | 4 | Create product, invalid price rejected, barcode lookup, 404 |
+| `inventory.test.ts` | 3 | Manual adjust_in, stock-guard rejects oversell, short notes rejected |
+| `purchases.test.ts` | 1 | Full PO lifecycle: draft → approved → received → stock verified |
+| `sales.test.ts` | 3 | Retail price snapshot, wholesale price snapshot, stock-guard 400 |
+| **Total** | **18** | |
+
+Each test file calls `cleanDb()` in `beforeAll` and `afterAll` for full isolation.
 
 ## Contributing
 

@@ -52,6 +52,8 @@ npm run dev
 - `npm run dev` — Start development server with hot reload (port 3000)
 - `npm run build` — Compile TypeScript to dist/
 - `npm start` — Run production build
+- `npm test` — Run 18 integration tests against `inventory_db_test`
+- `npm run seed` — Seed realistic kitchen utensil data into `inventory_db`
 - `npx prisma studio --config prisma.config.mjs` — Open database browser
 - `npx prisma migrate dev --name description` — Create and apply migration
 
@@ -97,6 +99,8 @@ npm run dev
 ✅ **Phase 4**: Purchase workflows (purchase orders, receiving)
 ✅ **Phase 5**: Sales processing (customers, sales orders, POS)
 ✅ **Phase 6**: Reporting (KPIs, P&L, product analytics)
+✅ **Phase 7**: Integration tests (18 tests, 5 suites — Jest 30 + ts-jest + Supertest)
+✅ **Phase 8**: Seed data (prisma/seed.ts — 10 products, 6 POs, 20 sales, 5 customers)
 
 ## For More Information
 

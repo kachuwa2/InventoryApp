@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "isolatedModules": true,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src/**/*", "__tests__/**/*", "prisma/**/*"]
+}

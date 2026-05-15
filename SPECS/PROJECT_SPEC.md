@@ -52,7 +52,12 @@
 - **ts-node 10.9.2**: TypeScript execution
 - **nodemon 3.1.14**: Auto-reload on file changes
 - **dotenv 17.4.2**: Environment variable loading
-- **dotenv-cli 11.0.0**: CLI for .env management
+
+### Testing Stack
+- **Jest 30.4.2**: Test runner
+- **ts-jest 29.4.9**: TypeScript transform for Jest
+- **Supertest 7.2.2**: HTTP integration testing
+- **`inventory_db_test`**: Dedicated test database (never `inventory_db`)
 
 ## Project Structure
 
@@ -87,8 +92,24 @@ inventory_system/
 ├── prisma/
 │   ├── schema.prisma             # Database schema
 │   └── migrations/               # Migration history (6 migrations)
+├── __tests__/                    # Integration tests
+│   ├── helpers/setup.ts          # Shared: app, db, cleanDb(), registerAdmin()
+│   ├── auth.test.ts              # 7 tests: register, login, JWT
+│   ├── products.test.ts          # 4 tests: CRUD, barcode, price validation
+│   ├── inventory.test.ts         # 3 tests: adjustments, stock guards
+│   ├── purchases.test.ts         # 1 lifecycle test: draft→approved→received
+│   └── sales.test.ts             # 3 tests: retail/wholesale pricing, stock guard
+├── prisma/
+│   ├── schema.prisma             # Database schema
+│   ├── seed.ts                   # Seed: 10 products, 6 POs, 20 sales, 5 customers
+│   └── migrations/               # Migration history (6 migrations)
 ├── dist/                         # Compiled output (after npm run build)
 ├── SPECS/                        # Documentation (this folder)
+├── jest.config.ts                # Jest: ts-jest preset, globalSetup, setupFiles
+├── jest.global-setup.js          # Creates inventory_db_test, deploys migrations
+├── jest.env.js                   # Loads .env.test before test modules import
+├── tsconfig.test.json            # Extends tsconfig: rootDir=".", ignoreDeprecations
+├── .env.test                     # Test env: DATABASE_URL → inventory_db_test
 ├── package.json                  # Dependencies
 ├── prisma.config.mjs             # Prisma configuration
 ├── tsconfig.json                 # TypeScript configuration
@@ -280,8 +301,20 @@ Business analytics and KPIs.
 2. **Implement service** (business logic + database calls)
 3. **Create controller** (HTTP handlers calling service)
 4. **Add routes** (Express route definitions)
-5. **Test manually** via HTTP requests
-6. **Update spec** documentation
+5. **Write integration test** in `__tests__/` using the established helpers
+6. **Update CLAUDE.md, SPECS/, and README.md** to reflect the change
+
+### Running Tests
+
+```bash
+npm test
+# Runs 18 integration tests against inventory_db_test
+# globalSetup auto-creates the DB and deploys migrations on first run
+# Each suite calls cleanDb() in beforeAll/afterAll for isolation
+```
+
+Test files live in `__tests__/`. Each file is self-contained. The `helpers/setup.ts`
+module provides `app`, `db`, `cleanDb()`, and `registerAdmin()` — never duplicate this logic.
 
 ### Code Standards
 
