@@ -101,6 +101,7 @@ npm run dev
 ✅ **Phase 6**: Reporting (KPIs, P&L, product analytics)
 ✅ **Phase 7**: Integration tests (18 tests, 5 suites — Jest 30 + ts-jest + Supertest)
 ✅ **Phase 8**: Seed data (prisma/seed.ts — 10 products, 6 POs, 20 sales, 5 customers)
+✅ **Phase 9**: Security hardening (helmet + express-rate-limit)
 
 ## For More Information
 

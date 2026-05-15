@@ -283,6 +283,7 @@ All 9 backend modules are complete and covered by integration tests:
 ✅ Customers       — customer CRUD (retail + wholesale) with order history
 ✅ Integration tests — 18 tests across 5 suites (Jest 30 + ts-jest + Supertest)
 ✅ Seed data        — prisma/seed.ts with realistic kitchen utensil data
+✅ Security hardening — helmet (12 headers) + express-rate-limit (login: 5/15min, general: 100/min)
 
 ---
 
@@ -304,7 +305,6 @@ Key rule: NEVER run tests against `inventory_db` — always `inventory_db_test`.
 ---
 
 ## What Still Needs Building
-⬜ Security hardening  — helmet.js + express-rate-limit
 ⬜ README.md           — portfolio-quality documentation
 ⬜ React frontend      — Vite + TanStack Query + React Router
 ⬜ Deployment          — Railway (API) + Vercel (frontend)

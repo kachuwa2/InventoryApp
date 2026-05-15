@@ -14,7 +14,10 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 import { errorHandler }     from './middleware/errorHandler';
+import { getIp }            from './utils/request';
 import authRoutes           from './modules/auth/auth.routes';
 import categoriesRoutes     from './modules/categories/categories.routes';
 import suppliersRoutes      from './modules/suppliers/suppliers.routes';
@@ -31,11 +34,35 @@ dotenv.config();
 // Initialize Express application
 const app = express();
 
+// ─── Security Headers ───────────────────────────────────────
+app.use(helmet());
+
 // ─── Middleware Setup ───────────────────────────────────────
-// Parse incoming JSON request bodies
 app.use(express.json());
-// Parse HTTP cookies from request headers
 app.use(cookieParser());
+
+// ─── Rate Limiting ──────────────────────────────────────────
+// Brute-force protection for login: 5 attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: (req) => getIp(req),
+  message: { success: false, message: 'Too many login attempts. Try again in 15 minutes.' },
+});
+app.post('/api/auth/login', loginLimiter);
+
+// General DoS protection: 100 requests per minute per IP
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: (req) => getIp(req),
+  message: { success: false, message: 'Too many requests. Slow down.' },
+});
+app.use(generalLimiter);
 
 // ─── Health Check Endpoint ──────────────────────────────────
 // Used for monitoring and load balancer health checks
