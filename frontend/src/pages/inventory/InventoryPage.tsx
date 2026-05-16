@@ -215,7 +215,7 @@ function AdjustModal({ product, onClose, onSuccess }: AdjustModalProps) {
 
       {/* Unit cost */}
       <div>
-        <label className={labelClass}>Unit Cost (KSh, optional)</label>
+        <label className={labelClass}>Unit Cost (Rs., optional)</label>
         <input {...register('unitCost')} type="number" step="0.01" min={0} placeholder="0.00" className={fieldClass} />
         <ErrorMessage message={errors.unitCost?.message} />
       </div>
@@ -322,7 +322,7 @@ function buildStockColumns(
     {
       key: 'value',
       header: 'Stock Value',
-      render: (row) => <span className="text-[13px] text-text">KSh {fmt(row.stockValue)}</span>,
+      render: (row) => <span className="text-[13px] text-text">Rs. {fmt(row.stockValue)}</span>,
     },
     {
       key: 'status',
@@ -449,7 +449,7 @@ export function InventoryPage() {
         const cost = row.priceHistory?.[0]?.costPrice;
         return (
           <span className="text-[13px] text-text">
-            {cost ? `KSh ${fmt(cost)}` : '—'}
+            {cost ? `Rs. ${fmt(cost)}` : '—'}
           </span>
         );
       },
@@ -458,7 +458,7 @@ export function InventoryPage() {
       key: 'totalValue',
       header: 'Total Value',
       render: (row) => (
-        <span className="text-[13px] font-medium text-text">KSh {fmt(row.stockValue)}</span>
+        <span className="text-[13px] font-medium text-text">Rs. {fmt(row.stockValue)}</span>
       ),
     },
   ];
@@ -499,7 +499,7 @@ export function InventoryPage() {
       header: 'Unit Cost',
       render: (row) => (
         <span className="text-[13px] text-text2">
-          {row.unitCost ? `KSh ${fmt(row.unitCost)}` : '—'}
+          {row.unitCost ? `Rs. ${fmt(row.unitCost)}` : '—'}
         </span>
       ),
     },
@@ -527,7 +527,7 @@ export function InventoryPage() {
     <div className="p-6">
       <PageHeader
         title="Inventory"
-        subtitle={`Total stock value: KSh ${fmt(totalStockValue)}`}
+        subtitle={`Total stock value: Rs. ${fmt(totalStockValue)}`}
       />
 
       {/* Tabs */}
@@ -602,7 +602,7 @@ export function InventoryPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-surface border border-border rounded-xl p-5">
                   <p className="text-[12px] text-text2 uppercase tracking-wide mb-1">Total Stock Value</p>
-                  <p className="text-[28px] font-bold text-text">KSh {fmt(valuation.totalValue)}</p>
+                  <p className="text-[28px] font-bold text-text">Rs. {fmt(valuation.totalValue)}</p>
                 </div>
                 <div className="bg-surface border border-border rounded-xl p-5">
                   <p className="text-[12px] text-text2 uppercase tracking-wide mb-1">Products Tracked</p>
@@ -637,7 +637,7 @@ export function InventoryPage() {
                         tickLine={false}
                       />
                       <Tooltip
-                        formatter={(val) => [`KSh ${fmt(val as number)}`, 'Value']}
+                        formatter={(val) => [`Rs. ${fmt(val as number)}`, 'Value']}
                         contentStyle={{ background: '#13151C', border: '1px solid #252836', borderRadius: 8, fontSize: 12 }}
                         labelStyle={{ color: '#E8E9F0' }}
                         itemStyle={{ color: '#7C6EF8' }}

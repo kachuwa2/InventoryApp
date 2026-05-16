@@ -173,7 +173,7 @@ export function CustomersPage() {
     },
     {
       key: 'creditLimit',
-      header: 'Credit Limit (KSh)',
+      header: 'Credit Limit (Rs.)',
       render: (row) => <span className="text-text2 text-[13px]">{fmt(row.creditLimit)}</span>,
     },
     {
@@ -301,7 +301,7 @@ export function CustomersPage() {
                   )}
                   <div className="flex justify-between">
                     <span className="text-text3">Credit Limit</span>
-                    <span className="text-text">KSh {fmt(detail.creditLimit)}</span>
+                    <span className="text-text">Rs. {fmt(detail.creditLimit)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text3">Member Since</span>
@@ -346,7 +346,7 @@ export function CustomersPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-success text-[12px] font-semibold">
-                              KSh {fmt(sale.totalAmount)}
+                              Rs. {fmt(sale.totalAmount)}
                             </span>
                             <ExternalLink className="w-3 h-3 text-text3" />
                           </div>
@@ -521,7 +521,7 @@ function CustomerForm({ register, errors, formType, setValue }: CustomerFormProp
       </div>
       <div>
         <label className="block text-text2 text-[12px] font-medium mb-1.5">
-          Credit Limit (KSh)
+          Credit Limit (Rs.)
         </label>
         <input
           {...register('creditLimit')}

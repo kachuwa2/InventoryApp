@@ -5,8 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Plus, Edit2, Trash2, DollarSign, X, Package, Tag, ChevronRight,
-  Barcode,
 } from 'lucide-react';
+import Barcoder from 'react-barcode';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { FilterBar } from '../../components/ui/FilterBar';
 import { DataTable } from '../../components/ui/DataTable';
@@ -160,10 +160,19 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose }: PanelProp
         <div>
           <h4 className="text-[16px] font-semibold text-text leading-snug">{product.name}</h4>
           <p className="text-[12px] font-mono text-text2 mt-0.5">{product.sku}</p>
-          {product.barcode && (
-            <p className="text-[11px] text-text3 flex items-center gap-1 mt-1">
-              <Barcode className="w-3 h-3" /> {product.barcode}
-            </p>
+          {product.barcode ? (
+            <div className="mt-3 bg-white rounded-lg p-3 inline-block">
+              <Barcoder
+                value={product.barcode}
+                format="CODE128"
+                width={1.5}
+                height={50}
+                fontSize={12}
+                displayValue={true}
+              />
+            </div>
+          ) : (
+            <p className="text-[11px] text-text3 mt-1">No barcode assigned</p>
           )}
           {product.description && (
             <p className="text-[12px] text-text2 mt-2 leading-relaxed">{product.description}</p>
@@ -390,7 +399,7 @@ export function ProductsPage() {
       header: 'Cost',
       render: (p) => {
         const ph = getLatestPrice(p);
-        return <span className="text-[13px] text-text2">{ph ? `KSh ${fmt(ph.costPrice)}` : '—'}</span>;
+        return <span className="text-[13px] text-text2">{ph ? `Rs. ${fmt(ph.costPrice)}` : '—'}</span>;
       },
     },
     {
@@ -398,7 +407,7 @@ export function ProductsPage() {
       header: 'Retail',
       render: (p) => {
         const ph = getLatestPrice(p);
-        return <span className="text-[13px] text-text">{ph ? `KSh ${fmt(ph.retailPrice)}` : '—'}</span>;
+        return <span className="text-[13px] text-text">{ph ? `Rs. ${fmt(ph.retailPrice)}` : '—'}</span>;
       },
     },
     {
@@ -406,7 +415,7 @@ export function ProductsPage() {
       header: 'Wholesale',
       render: (p) => {
         const ph = getLatestPrice(p);
-        return <span className="text-[13px] text-text2">{ph ? `KSh ${fmt(ph.wholesalePrice)}` : '—'}</span>;
+        return <span className="text-[13px] text-text2">{ph ? `Rs. ${fmt(ph.wholesalePrice)}` : '—'}</span>;
       },
     },
     {
@@ -621,13 +630,13 @@ export function ProductsPage() {
               ))}
             </select>
           </Field>
-          <Field label="Cost Price (KSh) *" error={addForm.formState.errors.costPrice?.message}>
+          <Field label="Cost Price (Rs.) *" error={addForm.formState.errors.costPrice?.message}>
             <input {...addForm.register('costPrice')} type="number" step="0.01" min={0} className={inputCls} placeholder="0.00" />
           </Field>
-          <Field label="Retail Price (KSh) *" error={addForm.formState.errors.retailPrice?.message}>
+          <Field label="Retail Price (Rs.) *" error={addForm.formState.errors.retailPrice?.message}>
             <input {...addForm.register('retailPrice')} type="number" step="0.01" min={0} className={inputCls} placeholder="0.00" />
           </Field>
-          <Field label="Wholesale Price (KSh) *" error={addForm.formState.errors.wholesalePrice?.message}>
+          <Field label="Wholesale Price (Rs.) *" error={addForm.formState.errors.wholesalePrice?.message}>
             <input {...addForm.register('wholesalePrice')} type="number" step="0.01" min={0} className={inputCls} placeholder="0.00" />
           </Field>
           <Field label="Price Note" error={addForm.formState.errors.priceNote?.message}>
@@ -751,19 +760,19 @@ export function ProductsPage() {
               {ph && (
                 <div className="bg-surface2 rounded-lg p-4 text-[12px] text-text2 space-y-1">
                   <p className="font-medium text-text3 uppercase tracking-wider text-[10px] mb-2">Current Prices</p>
-                  <div className="flex justify-between"><span>Cost</span><span className="font-mono">KSh {fmt(ph.costPrice)}</span></div>
-                  <div className="flex justify-between"><span>Retail</span><span className="font-mono">KSh {fmt(ph.retailPrice)}</span></div>
-                  <div className="flex justify-between"><span>Wholesale</span><span className="font-mono">KSh {fmt(ph.wholesalePrice)}</span></div>
+                  <div className="flex justify-between"><span>Cost</span><span className="font-mono">Rs. {fmt(ph.costPrice)}</span></div>
+                  <div className="flex justify-between"><span>Retail</span><span className="font-mono">Rs. {fmt(ph.retailPrice)}</span></div>
+                  <div className="flex justify-between"><span>Wholesale</span><span className="font-mono">Rs. {fmt(ph.wholesalePrice)}</span></div>
                 </div>
               )}
               <div className="grid grid-cols-1 gap-3">
-                <Field label="New Cost Price (KSh) *" error={priceForm.formState.errors.costPrice?.message}>
+                <Field label="New Cost Price (Rs.) *" error={priceForm.formState.errors.costPrice?.message}>
                   <input {...priceForm.register('costPrice')} type="number" step="0.01" min={0} className={inputCls} />
                 </Field>
-                <Field label="New Retail Price (KSh) *" error={priceForm.formState.errors.retailPrice?.message}>
+                <Field label="New Retail Price (Rs.) *" error={priceForm.formState.errors.retailPrice?.message}>
                   <input {...priceForm.register('retailPrice')} type="number" step="0.01" min={0} className={inputCls} />
                 </Field>
-                <Field label="New Wholesale Price (KSh) *" error={priceForm.formState.errors.wholesalePrice?.message}>
+                <Field label="New Wholesale Price (Rs.) *" error={priceForm.formState.errors.wholesalePrice?.message}>
                   <input {...priceForm.register('wholesalePrice')} type="number" step="0.01" min={0} className={inputCls} />
                 </Field>
                 <Field label="Note" error={priceForm.formState.errors.note?.message}>

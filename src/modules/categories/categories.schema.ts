@@ -38,6 +38,7 @@ export const updateCategorySchema = z.object({
 
     parentId: z
       .string()
+      .nullable()
       .optional(),
   }),
 });

@@ -85,7 +85,7 @@ function SupplierCard({ supplier, onEdit, onDelete }: SupplierCardProps) {
       <div className="flex items-center justify-between py-2 border-t border-border/60">
         <span className="text-[11px] text-text3 uppercase tracking-wide font-medium">Credit Limit</span>
         <span className="text-[13px] font-semibold text-text">
-          {supplier.creditLimit ? `KSh ${fmt(supplier.creditLimit)}` : '—'}
+          {supplier.creditLimit ? `Rs. ${fmt(supplier.creditLimit)}` : '—'}
         </span>
       </div>
 
@@ -179,7 +179,7 @@ function SupplierForm({ defaultValues, onSubmit, loading, submitLabel, onCancel 
 
       {/* Credit limit */}
       <div>
-        <label className={labelClass}>Credit Limit (KSh)</label>
+        <label className={labelClass}>Credit Limit (Rs.)</label>
         <input
           {...register('creditLimit')}
           type="number"

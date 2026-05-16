@@ -61,7 +61,7 @@ export function DashboardPage() {
         <div style={styles.grid}>
           <KpiCard
             label="Today's Revenue"
-            value={`KSh ${data.today.revenue.toFixed(2)}`}
+            value={`Rs. ${data.today.revenue.toFixed(2)}`}
             accent="#10b981"
           />
           <KpiCard
@@ -71,7 +71,7 @@ export function DashboardPage() {
           />
           <KpiCard
             label="This Month Revenue"
-            value={`KSh ${data.thisMonth.revenue.toFixed(2)}`}
+            value={`Rs. ${data.thisMonth.revenue.toFixed(2)}`}
             accent="#6366f1"
           />
           <KpiCard

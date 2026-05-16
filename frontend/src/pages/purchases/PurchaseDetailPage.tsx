@@ -191,8 +191,8 @@ export function PurchaseDetailPage() {
                           <span className={shortShip ? 'text-warning' : 'text-success'}>{item.quantityReceived}</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-[13px] font-mono text-text">KSh {fmt(item.unitCost)}</td>
-                      <td className="px-3 py-3 text-[13px] font-mono text-text">KSh {fmt(item.quantityOrdered * parseFloat(item.unitCost))}</td>
+                      <td className="px-3 py-3 text-[13px] font-mono text-text">Rs. {fmt(item.unitCost)}</td>
+                      <td className="px-3 py-3 text-[13px] font-mono text-text">Rs. {fmt(item.quantityOrdered * parseFloat(item.unitCost))}</td>
                     </tr>
                   );
                 })}
@@ -228,7 +228,7 @@ export function PurchaseDetailPage() {
             <div className="border-t border-border mt-4 pt-4">
               <div className="flex justify-between items-center">
                 <span className="text-text2 text-[13px]">Total Value</span>
-                <span className="text-text font-semibold font-mono text-[15px]">KSh {fmt(totalValue)}</span>
+                <span className="text-text font-semibold font-mono text-[15px]">Rs. {fmt(totalValue)}</span>
               </div>
             </div>
           </div>

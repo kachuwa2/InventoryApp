@@ -218,7 +218,7 @@ export function NewPurchasePage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {['Product', 'SKU', 'Qty', 'Unit Cost (KSh)', 'Line Total', ''].map((h) => (
+                    {['Product', 'SKU', 'Qty', 'Unit Cost (Rs.)', 'Line Total', ''].map((h) => (
                       <th key={h} className="px-3 py-2 text-left text-[11px] font-medium text-text2 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -279,7 +279,7 @@ export function NewPurchasePage() {
               <div className="border-t border-border my-1" />
               <div className="flex justify-between text-[15px] font-semibold">
                 <span className="text-text2">Total</span>
-                <span className="text-text font-mono">KSh {fmt(runningTotal)}</span>
+                <span className="text-text font-mono">Rs. {fmt(runningTotal)}</span>
               </div>
             </div>
 

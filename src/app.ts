@@ -28,6 +28,7 @@ import purchasesRoutes      from './modules/purchases/purchases.routes';
 import customersRoutes      from './modules/customers/customers.routes';
 import salesRoutes          from './modules/sales/sales.routes';
 import reportsRoutes from './modules/reports/reports.routes';
+import usersRoutes  from './modules/users/users.routes';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -93,6 +94,7 @@ app.use('/api/purchases',  purchasesRoutes);   // Purchase order workflows
 app.use('/api/customers',  customersRoutes);   // Customer relationship management
 app.use('/api/sales',      salesRoutes);       // Point-of-sale and sales orders
 app.use('/api/reports', reportsRoutes);        // Business analytics and KPIs
+app.use('/api/users',   usersRoutes);          // User management (admin only)
 
 // ─── Error Handling Middleware ──────────────────────────────
 // Must be registered last to catch all errors from routes above

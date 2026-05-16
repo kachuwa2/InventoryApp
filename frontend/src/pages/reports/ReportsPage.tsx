@@ -123,9 +123,9 @@ function PLTab() {
         <>
           {/* Summary cards */}
           <div className="flex gap-4 flex-wrap">
-            <StatCard label="Revenue" value={`KSh ${fmt(data.summary.revenue)}`} variant="success" />
-            <StatCard label="COGS" value={`KSh ${fmt(data.summary.cogs)}`} variant="danger" />
-            <StatCard label="Gross Profit" value={`KSh ${fmt(data.summary.grossProfit)}`} variant="success" />
+            <StatCard label="Revenue" value={`Rs. ${fmt(data.summary.revenue)}`} variant="success" />
+            <StatCard label="COGS" value={`Rs. ${fmt(data.summary.cogs)}`} variant="danger" />
+            <StatCard label="Gross Profit" value={`Rs. ${fmt(data.summary.grossProfit)}`} variant="success" />
             <StatCard
               label="Margin %"
               value={`${Number(data.summary.marginPct).toFixed(1)}%`}
@@ -154,7 +154,7 @@ function PLTab() {
                   <Tooltip
                     contentStyle={{ background: '#13151C', border: '1px solid #252836', borderRadius: 8, fontSize: 12 }}
                     labelStyle={{ color: '#E8E9F0' }}
-                    formatter={(value) => [`KSh ${fmt(value as number)}`, '']}
+                    formatter={(value) => [`Rs. ${fmt(value as number)}`, '']}
                   />
                   <Bar dataKey="revenue" name="Revenue" fill="#2DD4A0" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="cogs" name="COGS" fill="#F56B6B" radius={[4, 4, 0, 0]} />
@@ -182,9 +182,9 @@ function PLTab() {
                     <tr key={p.productId} className="border-b border-border/50">
                       <td className="px-4 py-3 text-text text-[13px] font-medium">{p.productName}</td>
                       <td className="px-4 py-3 text-text2 text-[13px]">{p.unitsSold}</td>
-                      <td className="px-4 py-3 text-success text-[13px]">KSh {fmt(p.revenue)}</td>
-                      <td className="px-4 py-3 text-danger text-[13px]">KSh {fmt(p.cogs)}</td>
-                      <td className="px-4 py-3 text-text text-[13px]">KSh {fmt(p.profit)}</td>
+                      <td className="px-4 py-3 text-success text-[13px]">Rs. {fmt(p.revenue)}</td>
+                      <td className="px-4 py-3 text-danger text-[13px]">Rs. {fmt(p.cogs)}</td>
+                      <td className="px-4 py-3 text-text text-[13px]">Rs. {fmt(p.profit)}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${marginBg(pct)} ${marginColor(pct)}`}>
                           {pct.toFixed(1)}%
@@ -254,7 +254,7 @@ function TopProductsTab() {
                       />
                     </div>
                     <span className="text-text text-[12px] font-medium w-24 shrink-0">
-                      KSh {fmt(p.revenue)}
+                      Rs. {fmt(p.revenue)}
                     </span>
                   </div>
                 );
@@ -281,9 +281,9 @@ function TopProductsTab() {
                     <td className="px-4 py-3 text-text text-[13px] font-medium">{p.productName}</td>
                     <td className="px-4 py-3 text-text2 text-[13px]">{p.unitsSold}</td>
                     <td className="px-4 py-3 text-success text-[13px] font-semibold">
-                      KSh {fmt(p.revenue)}
+                      Rs. {fmt(p.revenue)}
                     </td>
-                    <td className="px-4 py-3 text-text2 text-[13px]">KSh {fmt(p.avgPrice)}</td>
+                    <td className="px-4 py-3 text-text2 text-[13px]">Rs. {fmt(p.avgPrice)}</td>
                     <td className="px-4 py-3 text-text2 text-[13px]">{p.orderCount}</td>
                   </tr>
                 ))}
@@ -329,7 +329,7 @@ function SlowMovingTab() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
-                {['Product', 'Category', 'Current Stock', 'Stock Value (KSh)', 'Last Sold', 'Days Since Sold'].map((h) => (
+                {['Product', 'Category', 'Current Stock', 'Stock Value (Rs.)', 'Last Sold', 'Days Since Sold'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-[11px] font-medium text-text2 uppercase tracking-wider">
                     {h}
                   </th>
@@ -357,7 +357,7 @@ function SlowMovingTab() {
                       <td className="px-4 py-3 text-text text-[13px] font-medium">{p.productName}</td>
                       <td className="px-4 py-3 text-text2 text-[13px]">{p.categoryName}</td>
                       <td className="px-4 py-3 text-text2 text-[13px]">{p.currentStock}</td>
-                      <td className="px-4 py-3 text-text text-[13px]">KSh {fmt(p.stockValue)}</td>
+                      <td className="px-4 py-3 text-text text-[13px]">Rs. {fmt(p.stockValue)}</td>
                       <td className="px-4 py-3 text-text2 text-[13px]">
                         {p.lastSoldAt ? fmtDate(p.lastSoldAt) : <span className="text-danger text-[12px]">Never</span>}
                       </td>

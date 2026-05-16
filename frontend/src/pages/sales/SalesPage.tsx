@@ -86,7 +86,7 @@ export function SalesPage() {
     },
     {
       key: 'total',
-      header: 'Total (KSh)',
+      header: 'Total (Rs.)',
       render: (row) => (
         <span className="text-success font-semibold text-[13px]">
           {fmt(row.totalAmount)}
@@ -237,7 +237,7 @@ export function SalesPage() {
                   <div className="flex justify-between">
                     <span className="text-text2">Subtotal</span>
                     <span className="text-text">
-                      KSh {fmt(
+                      Rs. {fmt(
                         (detail.items ?? []).reduce((s, i) => s + Number(i.lineTotal), 0)
                       )}
                     </span>
@@ -246,7 +246,7 @@ export function SalesPage() {
                     <div className="flex justify-between">
                       <span className="text-text2">Order Discount ({detail.discount}%)</span>
                       <span className="text-danger">
-                        -KSh {fmt(
+                        -Rs. {fmt(
                           (detail.items ?? []).reduce((s, i) => s + Number(i.lineTotal), 0) *
                             (Number(detail.discount) / 100)
                         )}
@@ -255,7 +255,7 @@ export function SalesPage() {
                   )}
                   <div className="border-t border-border pt-2 flex justify-between font-semibold">
                     <span className="text-text">Total</span>
-                    <span className="text-success text-[16px]">KSh {fmt(detail.totalAmount)}</span>
+                    <span className="text-success text-[16px]">Rs. {fmt(detail.totalAmount)}</span>
                   </div>
                 </div>
               </div>

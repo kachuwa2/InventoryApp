@@ -346,7 +346,7 @@ export function PosPage() {
                         <p className="text-text3 text-[11px] font-mono">{p.sku}</p>
                       </div>
                       <span className="text-success text-[13px] font-semibold">
-                        KSh {fmt(price)}
+                        Rs. {fmt(price)}
                       </span>
                     </button>
                   );
@@ -385,7 +385,7 @@ export function PosPage() {
                         <p className="text-text3 text-[11px] font-mono">{item.sku}</p>
                       </td>
                       <td className="px-4 py-3 text-right text-[13px] text-text2">
-                        KSh {fmt(item.unitPrice)}
+                        Rs. {fmt(item.unitPrice)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1.5">
@@ -418,7 +418,7 @@ export function PosPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="text-text text-[13px] font-semibold">
-                          KSh {fmt(lineTotal(item))}
+                          Rs. {fmt(lineTotal(item))}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -459,7 +459,7 @@ export function PosPage() {
                   />
                 </div>
                 <p className="text-text3 text-[11px] mt-2">
-                  Credit limit: KSh {fmt(selectedCustomer.creditLimit)}
+                  Credit limit: Rs. {fmt(selectedCustomer.creditLimit)}
                 </p>
               </>
             ) : (
@@ -476,7 +476,7 @@ export function PosPage() {
             </div>
             <div className="flex justify-between text-[13px]">
               <span className="text-text2">Subtotal</span>
-              <span className="text-text">KSh {fmt(subtotal)}</span>
+              <span className="text-text">Rs. {fmt(subtotal)}</span>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-text2 text-[13px] shrink-0">Discount %</label>
@@ -492,12 +492,12 @@ export function PosPage() {
             {Number(orderDiscount) > 0 && (
               <div className="flex justify-between text-[13px]">
                 <span className="text-text2">Discount</span>
-                <span className="text-danger">-KSh {fmt(orderDiscountAmt)}</span>
+                <span className="text-danger">-Rs. {fmt(orderDiscountAmt)}</span>
               </div>
             )}
             <div className="border-t border-border pt-3 flex justify-between items-baseline">
               <span className="text-text2 text-[13px]">Total</span>
-              <span className="text-success text-[24px] font-bold">KSh {fmt(total)}</span>
+              <span className="text-success text-[24px] font-bold">Rs. {fmt(total)}</span>
             </div>
           </div>
 
@@ -703,7 +703,7 @@ export function PosPage() {
           </div>
           <div className="text-center">
             <p className="text-text3 text-[12px] mb-1">Total Amount</p>
-            <p className="text-success text-[32px] font-bold">KSh {fmt(total)}</p>
+            <p className="text-success text-[32px] font-bold">Rs. {fmt(total)}</p>
           </div>
         </div>
       </Modal>
@@ -737,13 +737,13 @@ export function PosPage() {
                     <span className="text-text2 truncate max-w-[60%]">
                       {item.name} x{item.quantity}
                     </span>
-                    <span className="text-text">KSh {fmt(lineTotal(item))}</span>
+                    <span className="text-text">Rs. {fmt(lineTotal(item))}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t border-border pt-2 flex justify-between font-semibold">
                 <span className="text-text">Total</span>
-                <span className="text-success">KSh {fmt(completedSale.totalAmount)}</span>
+                <span className="text-success">Rs. {fmt(completedSale.totalAmount)}</span>
               </div>
             </div>
             <div className="flex gap-3">

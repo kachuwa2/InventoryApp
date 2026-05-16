@@ -165,7 +165,7 @@ export function PurchasesPage() {
       header: 'Total Value',
       render: (row) => (
         <span className="text-[13px] font-medium text-text">
-          KSh {fmt(poTotalValue(row))}
+          Rs. {fmt(poTotalValue(row))}
         </span>
       ),
     },

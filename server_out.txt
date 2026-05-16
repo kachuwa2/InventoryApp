@@ -563,3 +563,100 @@ prisma:query SELECT "public"."categories"."id", "public"."categories"."name" FRO
     ╚════════════════════════════════════════╝
   
 [32m[nodemon] clean exit - waiting for changes before restart[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+◇ injected env (6) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+
+    ╔════════════════════════════════════════╗
+    ║  Inventory Management System Running   ║
+    ╠════════════════════════════════════════╣
+    ║  URL:         http://localhost:3000          
+    ║  Environment: development
+    ╚════════════════════════════════════════╝
+  
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+◇ injected env (6) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+    ╔════════════════════════════════════════╗
+    ║  Inventory Management System Running   ║
+    ╠════════════════════════════════════════╣
+    ║  URL:         http://localhost:3000          
+    ║  Environment: development
+    ╚════════════════════════════════════════╝
+  
+[32m[nodemon] clean exit - waiting for changes before restart[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+◇ injected env (6) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+
+    ╔════════════════════════════════════════╗
+    ║  Inventory Management System Running   ║
+    ╠════════════════════════════════════════╣
+    ║  URL:         http://localhost:3000          
+    ║  Environment: development
+    ╚════════════════════════════════════════╝
+  
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+◇ injected env (6) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+
+    ╔════════════════════════════════════════╗
+    ║  Inventory Management System Running   ║
+    ╠════════════════════════════════════════╣
+    ║  URL:         http://localhost:3000          
+    ║  Environment: development
+    ╚════════════════════════════════════════╝
+  
+[32m[nodemon] clean exit - waiting for changes before restart[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+◇ injected env (6) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+    ╔════════════════════════════════════════╗
+    ║  Inventory Management System Running   ║
+    ╠════════════════════════════════════════╣
+    ║  URL:         http://localhost:3000          
+    ║  Environment: development
+    ╚════════════════════════════════════════╝
+  
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+◇ injected env (6) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+    ╔════════════════════════════════════════╗
+    ║  Inventory Management System Running   ║
+    ╠════════════════════════════════════════╣
+    ║  URL:         http://localhost:3000          
+    ║  Environment: development
+    ╚════════════════════════════════════════╝
+  
+[32m[nodemon] clean exit - waiting for changes before restart[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+◇ injected env (6) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+    ╔════════════════════════════════════════╗
+    ║  Inventory Management System Running   ║
+    ╠════════════════════════════════════════╣
+    ║  URL:         http://localhost:3000          
+    ║  Environment: development
+    ╚════════════════════════════════════════╝
+  
+prisma:query SELECT "public"."products"."id", "public"."products"."name", "public"."products"."sku", "public"."products"."barcode", "public"."products"."description", "public"."products"."unit", "public"."products"."reorder_point", "public"."products"."category_id", "public"."products"."supplier_id", "public"."products"."created_at", "public"."products"."updated_at", "public"."products"."deleted_at" FROM "public"."products" WHERE "public"."products"."deleted_at" IS NULL ORDER BY "public"."products"."name" ASC OFFSET $1
+prisma:query SELECT "public"."customers"."id", "public"."customers"."name", "public"."customers"."phone", "public"."customers"."email", "public"."customers"."address", "public"."customers"."type"::text, "public"."customers"."credit_limit", "public"."customers"."created_at", "public"."customers"."updated_at", "public"."customers"."deleted_at", COALESCE("aggr_selection_0_SalesOrder"."_aggr_count_salesOrders", 0) AS "_aggr_count_salesOrders" FROM "public"."customers" LEFT JOIN (SELECT "public"."sales_orders"."customer_id", COUNT(*) AS "_aggr_count_salesOrders" FROM "public"."sales_orders" WHERE 1=1 GROUP BY "public"."sales_orders"."customer_id") AS "aggr_selection_0_SalesOrder" ON ("public"."customers"."id" = "aggr_selection_0_SalesOrder"."customer_id") WHERE "public"."customers"."deleted_at" IS NULL ORDER BY "public"."customers"."name" ASC OFFSET $1
+prisma:query SELECT "public"."categories"."id", "public"."categories"."name" FROM "public"."categories" WHERE "public"."categories"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9) OFFSET $10
+prisma:query SELECT "public"."suppliers"."id", "public"."suppliers"."name" FROM "public"."suppliers" WHERE "public"."suppliers"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9) OFFSET $10
+prisma:query SELECT "public"."product_price_history"."id", "public"."product_price_history"."product_id", "public"."product_price_history"."cost_price", "public"."product_price_history"."retail_price", "public"."product_price_history"."wholesale_price", "public"."product_price_history"."changed_by_id", "public"."product_price_history"."effective_from", "public"."product_price_history"."note" FROM "public"."product_price_history" WHERE "public"."product_price_history"."product_id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9) ORDER BY "public"."product_price_history"."effective_from" DESC OFFSET $10
+prisma:query SELECT "public"."products"."id", "public"."products"."name", "public"."products"."sku", "public"."products"."barcode", "public"."products"."description", "public"."products"."unit", "public"."products"."reorder_point", "public"."products"."category_id", "public"."products"."supplier_id", "public"."products"."created_at", "public"."products"."updated_at", "public"."products"."deleted_at" FROM "public"."products" WHERE "public"."products"."deleted_at" IS NULL ORDER BY "public"."products"."name" ASC OFFSET $1
+prisma:query SELECT "public"."categories"."id", "public"."categories"."name" FROM "public"."categories" WHERE "public"."categories"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9) OFFSET $10
+prisma:query SELECT "public"."customers"."id", "public"."customers"."name", "public"."customers"."phone", "public"."customers"."email", "public"."customers"."address", "public"."customers"."type"::text, "public"."customers"."credit_limit", "public"."customers"."created_at", "public"."customers"."updated_at", "public"."customers"."deleted_at", COALESCE("aggr_selection_0_SalesOrder"."_aggr_count_salesOrders", 0) AS "_aggr_count_salesOrders" FROM "public"."customers" LEFT JOIN (SELECT "public"."sales_orders"."customer_id", COUNT(*) AS "_aggr_count_salesOrders" FROM "public"."sales_orders" WHERE 1=1 GROUP BY "public"."sales_orders"."customer_id") AS "aggr_selection_0_SalesOrder" ON ("public"."customers"."id" = "aggr_selection_0_SalesOrder"."customer_id") WHERE "public"."customers"."deleted_at" IS NULL ORDER BY "public"."customers"."name" ASC OFFSET $1
+prisma:query SELECT "public"."suppliers"."id", "public"."suppliers"."name" FROM "public"."suppliers" WHERE "public"."suppliers"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9) OFFSET $10
+prisma:query SELECT "public"."product_price_history"."id", "public"."product_price_history"."product_id", "public"."product_price_history"."cost_price", "public"."product_price_history"."retail_price", "public"."product_price_history"."wholesale_price", "public"."product_price_history"."changed_by_id", "public"."product_price_history"."effective_from", "public"."product_price_history"."note" FROM "public"."product_price_history" WHERE "public"."product_price_history"."product_id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9) ORDER BY "public"."product_price_history"."effective_from" DESC OFFSET $10

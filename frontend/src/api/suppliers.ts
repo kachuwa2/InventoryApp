@@ -19,7 +19,10 @@ export async function createSupplier(payload: {
   address?: string;
   creditLimit?: string;
 }): Promise<Supplier> {
-  const { data } = await client.post<{ data: Supplier }>('/suppliers', payload);
+  const { data } = await client.post<{ data: Supplier }>('/suppliers', {
+    ...payload,
+    creditLimit: payload.creditLimit ? Number(payload.creditLimit) : undefined,
+  });
   return data.data;
 }
 
@@ -34,7 +37,10 @@ export async function updateSupplier(
     creditLimit?: string;
   }
 ): Promise<Supplier> {
-  const { data } = await client.put<{ data: Supplier }>(`/suppliers/${id}`, payload);
+  const { data } = await client.put<{ data: Supplier }>(`/suppliers/${id}`, {
+    ...payload,
+    creditLimit: payload.creditLimit ? Number(payload.creditLimit) : undefined,
+  });
   return data.data;
 }
 

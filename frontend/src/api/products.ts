@@ -36,7 +36,12 @@ export async function createProduct(payload: {
   wholesalePrice: string;
   priceNote?: string;
 }): Promise<Product> {
-  const { data } = await client.post<{ data: Product }>('/products', payload);
+  const { data } = await client.post<{ data: Product }>('/products', {
+    ...payload,
+    costPrice:      Number(payload.costPrice),
+    retailPrice:    Number(payload.retailPrice),
+    wholesalePrice: Number(payload.wholesalePrice),
+  });
   return data.data;
 }
 
@@ -64,7 +69,12 @@ export async function updateProductPrice(
     note?: string;
   }
 ): Promise<Product> {
-  const { data } = await client.put<{ data: Product }>(`/products/${id}/price`, payload);
+  const { data } = await client.put<{ data: Product }>(`/products/${id}/price`, {
+    costPrice:      Number(payload.costPrice),
+    retailPrice:    Number(payload.retailPrice),
+    wholesalePrice: Number(payload.wholesalePrice),
+    note:           payload.note,
+  });
   return data.data;
 }
 

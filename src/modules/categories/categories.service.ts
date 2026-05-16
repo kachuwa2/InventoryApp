@@ -9,13 +9,9 @@ export async function getAllCategories() {
   return db.category.findMany({
     where: { deletedAt: null },
     include: {
-      // Include direct children of each category
-      children: {
-        where: { deletedAt: null },
-      },
-      // Include parent info so we know where
-      // this category sits in the tree
+      children: { where: { deletedAt: null } },
       parent: true,
+      _count: { select: { products: true } },
     },
     orderBy: { name: 'asc' },
   });

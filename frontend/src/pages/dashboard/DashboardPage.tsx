@@ -115,7 +115,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           label="Today Revenue"
-          value={dashLoading ? <Spinner size="sm" /> : `KSh ${fmt(dashboard?.today.revenue ?? 0)}`}
+          value={dashLoading ? <Spinner size="sm" /> : `Rs. ${fmt(dashboard?.today.revenue ?? 0)}`}
           icon={<TrendingUp className="w-4 h-4" />}
           accent="#7C6EF8"
           loading={dashLoading}
@@ -129,7 +129,7 @@ export function DashboardPage() {
         />
         <StatCard
           label="Stock Value"
-          value={valLoading ? <Spinner size="sm" /> : `KSh ${fmt(valuation?.totalValue ?? 0)}`}
+          value={valLoading ? <Spinner size="sm" /> : `Rs. ${fmt(valuation?.totalValue ?? 0)}`}
           icon={<Package className="w-4 h-4" />}
           accent="#2DD4A0"
           loading={valLoading}
@@ -177,7 +177,7 @@ export function DashboardPage() {
                   contentStyle={{ background: '#13151C', border: '1px solid #252836', borderRadius: 8, fontSize: 12 }}
                   labelStyle={{ color: '#E8E9F0' }}
                   itemStyle={{ color: '#7C6EF8' }}
-                  formatter={(v) => [`KSh ${fmt(v as number)}`, 'Revenue']}
+                  formatter={(v) => [`Rs. ${fmt(v as number)}`, 'Revenue']}
                 />
                 <Area
                   type="monotone"
