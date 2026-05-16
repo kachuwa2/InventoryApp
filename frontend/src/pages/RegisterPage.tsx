@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Package } from 'lucide-react';
@@ -30,12 +30,12 @@ export function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const [serverError, setServerError] = useState('');
 
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { role: 'cashier' },
   });
 
-  const password = watch('password', '');
+  const password = useWatch({ control, name: 'password', defaultValue: '' });
   const strength = password.length >= 12 ? 3 : password.length >= 8 ? 2 : password.length >= 4 ? 1 : 0;
   const strengthLabel = ['', 'Weak', 'Good', 'Strong'][strength];
   const strengthColor = ['', 'bg-danger', 'bg-warning', 'bg-success'][strength];

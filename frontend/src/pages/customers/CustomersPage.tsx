@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Pencil, Trash2, Users, ExternalLink } from 'lucide-react';
@@ -96,7 +96,7 @@ export function CustomersPage() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     setValue,
     formState: { errors },
   } = useForm<CustomerFormData>({
@@ -104,7 +104,7 @@ export function CustomersPage() {
     defaultValues: { type: 'retail', creditLimit: '0' },
   });
 
-  const formType = watch('type');
+  const formType = useWatch({ control, name: 'type', defaultValue: 'retail' });
 
   function openAddModal() {
     reset({ type: 'retail', creditLimit: '0' });

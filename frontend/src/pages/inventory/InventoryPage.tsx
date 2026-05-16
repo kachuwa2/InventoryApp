@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -120,7 +120,7 @@ function AdjustModal({ product, onClose, onSuccess }: AdjustModalProps) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     formState: { errors },
   } = useForm<AdjustFormValues>({
@@ -128,9 +128,9 @@ function AdjustModal({ product, onClose, onSuccess }: AdjustModalProps) {
     defaultValues: { direction: 'in', quantity: 1, unitCost: '', notes: '' },
   });
 
-  const direction = watch('direction');
-  const quantity = watch('quantity');
-  const notes = watch('notes');
+  const direction = useWatch({ control, name: 'direction', defaultValue: 'in' });
+  const quantity  = useWatch({ control, name: 'quantity',  defaultValue: 1 });
+  const notes     = useWatch({ control, name: 'notes',     defaultValue: '' });
 
   const adjustMutation = useMutation({
     mutationFn: (values: AdjustFormValues) =>
@@ -676,7 +676,7 @@ export function InventoryPage() {
               <select
                 value={productIdFilter}
                 onChange={(e) => setProductIdFilter(e.target.value)}
-                className={`${inputClass} min-w-[200px]`}
+                className={`${inputClass} min-w-50`}
               >
                 <option value="">Select a product…</option>
                 {inventory.map((p) => (

@@ -550,3 +550,16 @@ prisma:query SELECT "public"."products"."id", "public"."products"."name", "publi
 prisma:query SELECT "public"."suppliers"."id", "public"."suppliers"."name" FROM "public"."suppliers" WHERE "public"."suppliers"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) OFFSET $11
 prisma:query SELECT "public"."product_price_history"."id", "public"."product_price_history"."product_id", "public"."product_price_history"."cost_price", "public"."product_price_history"."retail_price", "public"."product_price_history"."wholesale_price", "public"."product_price_history"."changed_by_id", "public"."product_price_history"."effective_from", "public"."product_price_history"."note" FROM "public"."product_price_history" WHERE "public"."product_price_history"."product_id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ORDER BY "public"."product_price_history"."effective_from" DESC OFFSET $11
 prisma:query SELECT "public"."categories"."id", "public"."categories"."name" FROM "public"."categories" WHERE "public"."categories"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) OFFSET $11
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+◇ injected env (6) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+    ╔════════════════════════════════════════╗
+    ║  Inventory Management System Running   ║
+    ╠════════════════════════════════════════╣
+    ║  URL:         http://localhost:3000          
+    ║  Environment: development
+    ╚════════════════════════════════════════╝
+  
+[32m[nodemon] clean exit - waiting for changes before restart[39m
