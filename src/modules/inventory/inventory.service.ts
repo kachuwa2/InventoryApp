@@ -222,23 +222,29 @@ export async function getInventoryValuation() {
     0
   );
 
-  const byCategory = stockLevels.reduce(
+  const byCategoryMap = stockLevels.reduce(
     (acc, product) => {
-      const categoryName = product.category.name;
-      if (!acc[categoryName]) {
-        acc[categoryName] = { totalValue: 0, productCount: 0 };
+      const { id: categoryId, name: categoryName } = product.category;
+      if (!acc[categoryId]) {
+        acc[categoryId] = { categoryName, totalValue: 0, productCount: 0 };
       }
-      acc[categoryName].totalValue     += product.stockValue;
-      acc[categoryName].productCount   += 1;
+      acc[categoryId].totalValue   += product.stockValue;
+      acc[categoryId].productCount += 1;
       return acc;
     },
-    {} as Record<string, { totalValue: number; productCount: number }>
+    {} as Record<string, { categoryName: string; totalValue: number; productCount: number }>
   );
 
+  const byCategory = Object.entries(byCategoryMap).map(([categoryId, v]) => ({
+    categoryId,
+    categoryName: v.categoryName,
+    totalValue:   String(Math.round(v.totalValue * 100) / 100),
+    productCount: v.productCount,
+  }));
+
   return {
-    totalValue:   Math.round(totalValue * 100) / 100,
+    totalValue:   String(Math.round(totalValue * 100) / 100),
     productCount: stockLevels.length,
     byCategory,
-    products:     stockLevels,
   };
 }

@@ -15,6 +15,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
 import { errorHandler }     from './middleware/errorHandler';
 import { getIp }            from './utils/request';
@@ -34,6 +35,13 @@ dotenv.config();
 // Initialize Express application
 const app = express();
 
+// ─── CORS ───────────────────────────────────────────────────
+// Allow the Vite dev server (any localhost port) to make credentialed requests
+app.use(cors({
+  origin: /^http:\/\/localhost:\d+$/,
+  credentials: true,
+}));
+
 // ─── Security Headers ───────────────────────────────────────
 app.use(helmet());
 
@@ -42,27 +50,27 @@ app.use(express.json());
 app.use(cookieParser());
 
 // ─── Rate Limiting ──────────────────────────────────────────
-// Brute-force protection for login: 5 attempts per 15 minutes per IP
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: (req) => getIp(req),
-  message: { success: false, message: 'Too many login attempts. Try again in 15 minutes.' },
-});
-app.post('/api/auth/login', loginLimiter);
+if (process.env.NODE_ENV === 'production') {
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    keyGenerator: (req) => getIp(req),
+    message: { success: false, message: 'Too many login attempts. Try again in 15 minutes.' },
+  });
+  app.post('/api/auth/login', loginLimiter);
 
-// General DoS protection: 100 requests per minute per IP
-const generalLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 100,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: (req) => getIp(req),
-  message: { success: false, message: 'Too many requests. Slow down.' },
-});
-app.use(generalLimiter);
+  const generalLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 100,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    keyGenerator: (req) => getIp(req),
+    message: { success: false, message: 'Too many requests. Slow down.' },
+  });
+  app.use(generalLimiter);
+}
 
 // ─── Health Check Endpoint ──────────────────────────────────
 // Used for monitoring and load balancer health checks
