@@ -93,6 +93,9 @@ export function PosPage() {
       salesApi.createSale(payload),
     onSuccess: (sale) => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['sales', 'daily-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast('success', 'Sale completed');
       setCompletedSale(sale);
       setShowPaymentConfirm(false);
       setShowReceipt(true);
@@ -213,11 +216,11 @@ export function PosPage() {
     saleMutation.mutate({
       type: saleType,
       customerId: selectedCustomer?.id,
-      discount: Number(orderDiscount).toFixed(2),
+      discount: Number(orderDiscount) || 0,
       items: cart.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
-        discountPct: i.discountPct.toFixed(2),
+        discountPct: i.discountPct,
       })),
     });
   }

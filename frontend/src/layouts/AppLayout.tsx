@@ -89,7 +89,7 @@ export function AppLayout() {
   return (
     <div className="flex h-screen bg-bg overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-[220px] shrink-0 bg-surface border-r border-border flex flex-col h-full">
+      <aside className="w-55 shrink-0 bg-surface border-r border-border flex flex-col h-full">
         {/* Logo */}
         <div className="px-4 py-5 border-b border-border">
           <div className="text-[16px] font-bold text-text tracking-tight">StockFlow</div>

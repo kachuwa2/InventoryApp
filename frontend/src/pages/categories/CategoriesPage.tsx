@@ -86,7 +86,7 @@ function CategoryRow({ node, depth, onEdit, onDelete }: CategoryRowProps) {
         </span>
 
         {node.description && (
-          <span className="hidden sm:inline text-[11px] text-text3 max-w-[160px] truncate">
+          <span className="hidden sm:inline text-[11px] text-text3 max-w-40 truncate">
             {node.description}
           </span>
         )}
@@ -276,7 +276,7 @@ export function CategoriesPage() {
         </div>
 
         {/* Right: Form panel */}
-        <div className="w-[380px] bg-surface border border-border rounded-xl overflow-hidden shrink-0">
+        <div className="w-95 bg-surface border border-border rounded-xl overflow-hidden shrink-0">
           <div className="px-5 py-4 border-b border-border">
             {editingCategory ? (
               <div>

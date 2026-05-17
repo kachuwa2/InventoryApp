@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAll, update, deactivate } from './users.controller';
+import { getAll } from './auditLogs.controller';
 import { authenticate } from '../../middleware/authentication';
 import { authorize } from '../../middleware/authorize';
 
@@ -7,7 +7,5 @@ const router = Router();
 
 router.use(authenticate);
 router.get('/', authorize(['admin']), getAll);
-router.put('/:id', authorize(['admin']), update);
-router.patch('/:id/deactivate', authorize(['admin']), deactivate);
 
 export default router;

@@ -143,8 +143,15 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose }: PanelProp
     ? 'bg-warning'
     : 'bg-success';
 
+  const { data: detail } = useQuery({
+    queryKey: ['products', product.id],
+    queryFn:  () => productsApi.getProduct(product.id),
+  });
+
+  const allHistory = detail?.priceHistory ?? product.priceHistory ?? [];
+
   return (
-    <div className="fixed top-0 right-0 h-full w-[340px] bg-surface border-l border-border z-40 flex flex-col shadow-2xl">
+    <div className="fixed top-0 right-0 h-full w-85 bg-surface border-l border-border z-40 flex flex-col shadow-2xl">
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <h3 className="text-[14px] font-semibold text-text">Product Details</h3>
         <button
@@ -220,6 +227,50 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose }: PanelProp
           </div>
           <p className="text-[11px] text-text3 mt-1">Reorder at {product.reorderPoint}</p>
         </div>
+
+        {/* Price History */}
+        {allHistory.length > 0 && (
+          <div>
+            <p className="text-[11px] font-medium text-text3 uppercase tracking-wider mb-2">Price History</p>
+            <div className="space-y-2">
+              {allHistory.map((ph, i) => (
+                <div
+                  key={ph.id}
+                  className={`bg-surface2 rounded-lg p-3 text-[12px] ${i === 0 ? 'border border-accent/20' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-text3 text-[10px]">
+                      {new Date(ph.effectiveFrom).toLocaleDateString()}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {ph.changedBy && (
+                        <span className="text-text3 text-[10px]">{ph.changedBy.name}</span>
+                      )}
+                      {i === 0 && (
+                        <span className="text-[10px] text-accent font-medium">Current</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 text-center">
+                    {[
+                      { label: 'Cost',    value: ph.costPrice },
+                      { label: 'Retail',  value: ph.retailPrice },
+                      { label: 'Whlsale', value: ph.wholesalePrice },
+                    ].map(({ label, value }) => (
+                      <div key={label}>
+                        <p className="text-[9px] text-text3 uppercase">{label}</p>
+                        <p className="text-[11px] font-medium text-text">{fmt(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {ph.note && (
+                    <p className="text-[10px] text-text3 mt-1 italic">{ph.note}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Category & Supplier */}
         <div className="space-y-2">
@@ -305,7 +356,10 @@ export function ProductsPage() {
   }, [products, stockStatus]);
 
   // Mutations
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['products'] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['products'] });
+    qc.invalidateQueries({ queryKey: ['inventory'] });
+  };
 
   const createMut = useMutation({
     mutationFn: (payload: Parameters<typeof productsApi.createProduct>[0]) =>
@@ -324,7 +378,13 @@ export function ProductsPage() {
   const priceMut = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof productsApi.updateProductPrice>[1] }) =>
       productsApi.updateProductPrice(id, payload),
-    onSuccess: () => { toast('success', 'Price updated'); setShowPriceModal(false); invalidate(); },
+    onSuccess: (_, { id }) => {
+      toast('success', 'Price updated');
+      setShowPriceModal(false);
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['products', id] });
+      qc.invalidateQueries({ queryKey: ['inventory'] });
+    },
     onError: () => toast('error', 'Failed to update price'),
   });
 
@@ -477,7 +537,7 @@ export function ProductsPage() {
   ];
 
   return (
-    <div className={`p-6 min-h-screen bg-bg transition-all ${selectedProduct ? 'mr-[340px]' : ''}`}>
+    <div className={`p-6 min-h-screen bg-bg transition-all ${selectedProduct ? 'mr-85' : ''}`}>
       <PageHeader
         title="Products"
         subtitle="Manage your product catalog"

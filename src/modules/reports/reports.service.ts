@@ -2,8 +2,6 @@ import { db } from '../../config/database';
 import { getCurrentStock } from '../inventory/inventory.service';
 
 // ─── Dashboard KPIs ─────────────────────────────────────
-// This is the first thing a manager sees every morning.
-// It answers: how is the business doing right now?
 export async function getDashboardKPIs() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -13,8 +11,6 @@ export async function getDashboardKPIs() {
 
   const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  // Run all queries in parallel — much faster than
-  // running them one after another sequentially
   const [
     todaySales,
     monthSales,
@@ -23,50 +19,24 @@ export async function getDashboardKPIs() {
     pendingPOs,
     recentActivity,
   ] = await Promise.all([
-
-    // Today's sales
     db.salesOrder.aggregate({
-      where: {
-        createdAt: { gte: today, lt: tomorrow },
-      },
+      where: { createdAt: { gte: today, lt: tomorrow } },
       _sum:   { totalAmount: true },
       _count: { id: true },
     }),
-
-    // This month's sales
     db.salesOrder.aggregate({
-      where: {
-        createdAt: { gte: thisMonthStart },
-      },
+      where: { createdAt: { gte: thisMonthStart } },
       _sum:   { totalAmount: true },
       _count: { id: true },
     }),
-
-    // Total active products
-    db.product.count({
-      where: { deletedAt: null },
-    }),
-
-    // Products below reorder point
-    // We fetch all products and filter in memory
-    // because stock is computed not stored
+    db.product.count({ where: { deletedAt: null } }),
     db.product.findMany({
       where: { deletedAt: null },
-      select: {
-        id:          true,
-        name:        true,
-        reorderPoint: true,
-      },
+      select: { id: true, name: true, reorderPoint: true },
     }),
-
-    // Purchase orders awaiting approval or receiving
     db.purchaseOrder.count({
-      where: {
-        status: { in: ['draft', 'approved'] },
-      },
+      where: { status: { in: ['draft', 'approved'] } },
     }),
-
-    // Recent activity — last 10 events across sales and purchases
     db.auditLog.findMany({
       take:    10,
       orderBy: { createdAt: 'desc' },
@@ -81,14 +51,10 @@ export async function getDashboardKPIs() {
           ],
         },
       },
-      include: {
-        user: { select: { id: true, name: true } },
-      },
+      include: { user: { select: { id: true, name: true } } },
     }),
-
   ]);
 
-  // Compute low stock count from the products list
   const lowStockProducts = await Promise.all(
     lowStockCount.map(async (product) => {
       const stock = await getCurrentStock(product.id);
@@ -99,8 +65,10 @@ export async function getDashboardKPIs() {
 
   return {
     today: {
-      revenue:    Number(todaySales._sum.totalAmount ?? 0),
-      orderCount: todaySales._count.id,
+      revenue:        Number(todaySales._sum.totalAmount ?? 0),
+      orderCount:     todaySales._count.id,
+      retailCount:    0,
+      wholesaleCount: 0,
     },
     thisMonth: {
       revenue:    Number(monthSales._sum.totalAmount ?? 0),
@@ -111,22 +79,25 @@ export async function getDashboardKPIs() {
       lowStockCount: lowStockTotal,
       pendingPurchaseOrders: pendingPOs,
     },
-    recentActivity,
+    recentActivity: recentActivity.map((l) => ({
+      id:        l.id,
+      action:    l.action,
+      tableName: l.tableName ?? '',
+      recordId:  l.recordId ?? '',
+      userId:    l.userId,
+      ipAddress: l.ipAddress ?? '',
+      before:    l.beforeState as Record<string, unknown> | null,
+      after:     l.afterState as Record<string, unknown> | null,
+      createdAt: l.createdAt,
+      user:      l.user,
+    })),
   };
 }
 
 // ─── Profit & Loss Report ───────────────────────────────
-// Revenue comes from sales.
-// Cost comes from the unit_cost on stock movements
-// that were triggered by sales.
-// Gross profit = revenue - cost of goods sold
 export async function getProfitLoss(from: Date, to: Date) {
-
-  // Get all sales in the date range with their items
   const sales = await db.salesOrder.findMany({
-    where: {
-      createdAt: { gte: from, lte: to },
-    },
+    where: { createdAt: { gte: from, lte: to } },
     include: {
       items: {
         include: {
@@ -136,75 +107,47 @@ export async function getProfitLoss(from: Date, to: Date) {
     },
   });
 
-  // Get all sale stock movements in the date range
-  // to compute cost of goods sold
   const saleMovements = await db.stockMovement.findMany({
-    where: {
-      type:      'sale',
-      createdAt: { gte: from, lte: to },
-    },
-    include: {
-      product: { select: { id: true, name: true } },
-    },
+    where: { type: 'sale', createdAt: { gte: from, lte: to } },
+    include: { product: { select: { id: true, name: true } } },
   });
 
-  // Total revenue from all sales
   const totalRevenue = sales.reduce(
     (sum, sale) => sum + Number(sale.totalAmount), 0
   );
 
-  // For cost of goods sold, we need the unit cost
-  // from purchase movements for the products sold.
-  // We approximate by finding the most recent purchase
-  // cost for each product sold.
-  const productIds = [
-    ...new Set(saleMovements.map(m => m.productId))
-  ];
+  const productIds = [...new Set(saleMovements.map((m) => m.productId))];
 
   const costByProduct: Record<string, number> = {};
-
   for (const productId of productIds) {
     const latestPurchase = await db.stockMovement.findFirst({
-      where: {
-        productId,
-        type: 'purchase',
-      },
+      where: { productId, type: 'purchase' },
       orderBy: { createdAt: 'desc' },
     });
     costByProduct[productId] = Number(latestPurchase?.unitCost ?? 0);
   }
 
-  // Calculate cost of goods sold
   const totalCost = saleMovements.reduce((sum, movement) => {
     const unitCost = costByProduct[movement.productId] ?? 0;
-    return sum + (unitCost * Number(movement.quantity));
+    return sum + unitCost * Number(movement.quantity);
   }, 0);
 
-  const grossProfit  = totalRevenue - totalCost;
-  const grossMargin  = totalRevenue > 0
-    ? Math.round((grossProfit / totalRevenue) * 100 * 100) / 100
-    : 0;
+  const grossProfit = totalRevenue - totalCost;
+  const grossMargin =
+    totalRevenue > 0
+      ? Math.round((grossProfit / totalRevenue) * 100 * 100) / 100
+      : 0;
 
-  // Break down by product
-  const byProduct: Record<string, {
-    name:     string;
-    revenue:  number;
-    quantity: number;
-    cost:     number;
-    profit:   number;
-  }> = {};
+  const byProduct: Record<
+    string,
+    { name: string; revenue: number; quantity: number; cost: number; profit: number }
+  > = {};
 
   for (const sale of sales) {
     for (const item of sale.items) {
       const pid = item.product.id;
       if (!byProduct[pid]) {
-        byProduct[pid] = {
-          name:     item.product.name,
-          revenue:  0,
-          quantity: 0,
-          cost:     0,
-          profit:   0,
-        };
+        byProduct[pid] = { name: item.product.name, revenue: 0, quantity: 0, cost: 0, profit: 0 };
       }
       byProduct[pid].revenue  += Number(item.lineTotal);
       byProduct[pid].quantity += Number(item.quantity);
@@ -219,19 +162,30 @@ export async function getProfitLoss(from: Date, to: Date) {
       to:   to.toISOString().split('T')[0],
     },
     summary: {
-      totalRevenue:  Math.round(totalRevenue  * 100) / 100,
-      totalCost:     Math.round(totalCost     * 100) / 100,
-      grossProfit:   Math.round(grossProfit   * 100) / 100,
-      grossMargin:   `${grossMargin}%`,
-      totalOrders:   sales.length,
+      revenue:     totalRevenue.toFixed(2),
+      cogs:        totalCost.toFixed(2),
+      grossProfit: grossProfit.toFixed(2),
+      marginPct:   grossMargin.toFixed(2),
     },
-    byProduct: Object.values(byProduct)
-      .sort((a, b) => b.revenue - a.revenue),
+    byProduct: Object.entries(byProduct)
+      .map(([productId, d]) => {
+        const marginPct = d.revenue > 0 ? (d.profit / d.revenue) * 100 : 0;
+        return {
+          productId,
+          productName: d.name,
+          unitsSold:   d.quantity,
+          revenue:     d.revenue.toFixed(2),
+          cogs:        d.cost.toFixed(2),
+          profit:      d.profit.toFixed(2),
+          marginPct:   marginPct.toFixed(2),
+        };
+      })
+      .sort((a, b) => Number(b.revenue) - Number(a.revenue)),
   };
 }
 
 // ─── Top selling products ───────────────────────────────
-export async function getTopProducts(limit: number = 10) {
+export async function getTopProducts(limit = 10) {
   const items = await db.salesOrderItem.groupBy({
     by:      ['productId'],
     _sum:    { lineTotal: true, quantity: true },
@@ -240,18 +194,23 @@ export async function getTopProducts(limit: number = 10) {
     take:    limit,
   });
 
-  // Attach product details to each result
   const withDetails = await Promise.all(
     items.map(async (item) => {
       const product = await db.product.findFirst({
-        where: { id: item.productId },
+        where:  { id: item.productId },
         select: { id: true, name: true, sku: true },
       });
+      const totalRevenue  = Math.round(Number(item._sum.lineTotal ?? 0) * 100) / 100;
+      const totalQuantity = Number(item._sum.quantity ?? 0);
       return {
-        product,
-        totalRevenue:  Math.round(Number(item._sum.lineTotal ?? 0) * 100) / 100,
-        totalQuantity: Number(item._sum.quantity ?? 0),
-        orderCount:    item._count.id,
+        productId:   product?.id   ?? item.productId,
+        productName: product?.name ?? 'Unknown',
+        unitsSold:   totalQuantity,
+        revenue:     totalRevenue.toFixed(2),
+        avgPrice:    totalQuantity > 0
+          ? (totalRevenue / totalQuantity).toFixed(2)
+          : '0.00',
+        orderCount:  item._count.id,
       };
     })
   );
@@ -260,62 +219,65 @@ export async function getTopProducts(limit: number = 10) {
 }
 
 // ─── Slow moving products ───────────────────────────────
-// Products that have stock but haven't sold recently.
-// These tie up cash and warehouse space.
-export async function getSlowMovingProducts(days: number = 30) {
+export async function getSlowMovingProducts(days = 30) {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
-  // Get all products
   const products = await db.product.findMany({
-    where: { deletedAt: null },
-    select: { id: true, name: true, sku: true, reorderPoint: true },
+    where:  { deletedAt: null },
+    select: {
+      id:          true,
+      name:        true,
+      sku:         true,
+      reorderPoint: true,
+      category:    { select: { id: true, name: true } },
+      priceHistory: {
+        orderBy: { effectiveFrom: 'desc' },
+        take:    1,
+        select:  { costPrice: true },
+      },
+    },
   });
 
   const slowMoving: {
-    product:      { id: string; name: string; sku: string };
-    currentStock: number;
-    lastSoldAt:   string | null;
-    daysSinceSold: number | null;
+    productId:        string;
+    productName:      string;
+    categoryName:     string;
+    currentStock:     number;
+    stockValue:       string;
+    lastSoldAt:       string | null;
+    daysSinceLastSale: number | null;
   }[] = [];
 
   for (const product of products) {
-    // Find the most recent sale for this product
     const lastSale = await db.stockMovement.findFirst({
-      where: {
-        productId: product.id,
-        type:      'sale',
-      },
+      where:   { productId: product.id, type: 'sale' },
       orderBy: { createdAt: 'desc' },
     });
 
     const currentStock = await getCurrentStock(product.id);
+    if (currentStock <= 0) continue;
 
-    // Only include products that have stock but haven't sold recently
-    if (currentStock > 0) {
-      const daysSinceSold = lastSale
-        ? Math.floor(
-            (Date.now() - lastSale.createdAt.getTime()) / (1000 * 60 * 60 * 24)
-          )
+    if (!lastSale || lastSale.createdAt < cutoffDate) {
+      const costPrice  = Number(product.priceHistory[0]?.costPrice ?? 0);
+      const stockValue = (currentStock * costPrice).toFixed(2);
+      const daysSinceLastSale = lastSale
+        ? Math.floor((Date.now() - lastSale.createdAt.getTime()) / 86_400_000)
         : null;
 
-      // Include if never sold OR not sold within the cutoff period
-      if (!lastSale || lastSale.createdAt < cutoffDate) {
-        slowMoving.push({
-          product: {
-            id:   product.id,
-            name: product.name,
-            sku:  product.sku,
-          },
-          currentStock,
-          lastSoldAt:    lastSale?.createdAt.toISOString() ?? null,
-          daysSinceSold,
-        });
-      }
+      slowMoving.push({
+        productId:        product.id,
+        productName:      product.name,
+        categoryName:     product.category?.name ?? '—',
+        currentStock,
+        stockValue,
+        lastSoldAt:       lastSale?.createdAt.toISOString() ?? null,
+        daysSinceLastSale,
+      });
     }
   }
 
   return slowMoving.sort(
-    (a, b) => (b.daysSinceSold ?? 999) - (a.daysSinceSold ?? 999)
+    (a, b) => (b.daysSinceLastSale ?? 999_999) - (a.daysSinceLastSale ?? 999_999)
   );
 }

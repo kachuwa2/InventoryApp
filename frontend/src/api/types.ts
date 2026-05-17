@@ -284,6 +284,6 @@ export interface AppUser {
   name: string;
   email: string;
   role: UserRole;
+  isActive: boolean;
   createdAt: string;
-  deletedAt: string | null;
 }

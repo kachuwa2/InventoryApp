@@ -13,7 +13,7 @@ const ROLES = ['admin', 'manager', 'cashier', 'warehouse', 'viewer'] as const;
 const schema = z
   .object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Valid email required'),
+    email: z.email('Valid email required'),
     password: z.string().min(8, 'Min 8 characters'),
     confirmPassword: z.string(),
     role: z.enum(ROLES),

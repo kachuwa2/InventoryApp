@@ -16,7 +16,7 @@ interface LineItem {
   productName: string;
   productSku: string;
   quantityOrdered: number;
-  unitCost: string;
+  unitCost: number;
 }
 
 export function NewPurchasePage() {
@@ -51,8 +51,8 @@ export function NewPurchasePage() {
         expectedAt: expectedAt || undefined,
         items: items.map((i) => ({
           productId: i.productId,
-          quantityOrdered: i.quantityOrdered,
-          unitCost: i.unitCost,
+          quantityOrdered: Number(i.quantityOrdered),
+          unitCost: Number(i.unitCost),
         })),
       }).then((po) => ({ po, draft })),
     onSuccess: ({ po }) => {
@@ -79,7 +79,7 @@ export function NewPurchasePage() {
     }
     const p = products.find((prod: Product) => prod.id === productPickerId);
     if (!p) return;
-    const cost = p.priceHistory?.[0]?.costPrice ?? '0';
+    const cost = parseFloat(p.priceHistory?.[0]?.costPrice ?? '0') || 0;
     setItems((prev) => [
       ...prev,
       { productId: p.id, productName: p.name, productSku: p.sku, quantityOrdered: 1, unitCost: cost },
@@ -94,16 +94,16 @@ export function NewPurchasePage() {
 
   function updateItem(productId: string, field: 'quantityOrdered' | 'unitCost', value: string) {
     setItems((prev) =>
-      prev.map((i) =>
-        i.productId === productId
-          ? { ...i, [field]: field === 'quantityOrdered' ? Math.max(1, parseInt(value) || 1) : value }
-          : i
-      )
+      prev.map((i) => {
+        if (i.productId !== productId) return i;
+        if (field === 'quantityOrdered') return { ...i, quantityOrdered: Math.max(1, parseInt(value) || 1) };
+        return { ...i, unitCost: parseFloat(value) || 0 };
+      })
     );
   }
 
   const runningTotal = items.reduce(
-    (sum, i) => sum + i.quantityOrdered * parseFloat(i.unitCost || '0'),
+    (sum, i) => sum + i.quantityOrdered * i.unitCost,
     0
   );
 
@@ -248,7 +248,7 @@ export function NewPurchasePage() {
                         />
                       </td>
                       <td className="px-3 py-3 text-[13px] font-mono text-text">
-                        {fmt(item.quantityOrdered * parseFloat(item.unitCost || '0'))}
+                        {fmt(item.quantityOrdered * item.unitCost)}
                       </td>
                       <td className="px-3 py-3">
                         <button onClick={() => removeItem(item.productId)} className="text-text3 hover:text-danger transition-colors">

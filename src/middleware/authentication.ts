@@ -3,15 +3,12 @@ import jwt from 'jsonwebtoken';
 import { UnauthorizedError } from '../utils/errors';
 
 export function authenticate(req: Request, res: Response, next: NextFunction) {
-  // Tokens arrive in the Authorization header like:
-  // "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return next(new UnauthorizedError('No token provided'));
   }
 
-  // Split "Bearer <token>" and take the second part
   const token = authHeader.split(' ')[1];
 
   try {
@@ -20,8 +17,6 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
       process.env.JWT_SECRET as string
     ) as { userId: string; role: string };
 
-    // Attach user identity to the request object
-    // Every controller after this can read req.user
     req.user = {
       userId: payload.userId,
       role: payload.role as any,
@@ -31,4 +26,23 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   } catch {
     return next(new UnauthorizedError('Invalid or expired token'));
   }
+}
+
+// Like authenticate but never throws — attaches req.user if token is valid,
+// leaves req.user undefined if no token or invalid token.
+export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const payload = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as { userId: string; role: string };
+      req.user = { userId: payload.userId, role: payload.role as any };
+    } catch {
+      // invalid token — proceed without user
+    }
+  }
+  next();
 }

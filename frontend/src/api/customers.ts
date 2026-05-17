@@ -24,7 +24,10 @@ export async function createCustomer(payload: {
   type?: CustomerType;
   creditLimit?: string;
 }): Promise<Customer> {
-  const { data } = await client.post<{ data: Customer }>('/customers', payload);
+  const { data } = await client.post<{ data: Customer }>('/customers', {
+    ...payload,
+    creditLimit: payload.creditLimit ? Number(payload.creditLimit) : undefined,
+  });
   return data.data;
 }
 
@@ -39,7 +42,10 @@ export async function updateCustomer(
     creditLimit?: string;
   }
 ): Promise<Customer> {
-  const { data } = await client.put<{ data: Customer }>(`/customers/${id}`, payload);
+  const { data } = await client.put<{ data: Customer }>(`/customers/${id}`, {
+    ...payload,
+    creditLimit: payload.creditLimit ? Number(payload.creditLimit) : undefined,
+  });
   return data.data;
 }
 

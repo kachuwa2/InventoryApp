@@ -24,9 +24,9 @@ export async function getDailySummary(): Promise<DailySummary> {
 export async function createSale(payload: {
   customerId?: string;
   type?: SaleType;
-  discount?: string;
+  discount?: number;
   notes?: string;
-  items: Array<{ productId: string; quantity: number; discountPct?: string }>;
+  items: Array<{ productId: string; quantity: number; discountPct?: number }>;
 }): Promise<Sale> {
   const { data } = await client.post<{ data: Sale }>('/sales', payload);
   return data.data;

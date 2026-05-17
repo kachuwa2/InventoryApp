@@ -107,11 +107,19 @@ export async function logout(
   res: Response,
   next: NextFunction
 ) {
-  // Clear the refresh token cookie
   res.clearCookie('refreshToken');
+  res.json({ success: true, message: 'Logged out successfully' });
+}
 
-  res.json({
-    success: true,
-    message: 'Logged out successfully',
-  });
+export async function setupStatus(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const count = await authService.getUserCount();
+    res.json({ success: true, data: { hasUsers: count > 0 } });
+  } catch (error) {
+    next(error);
+  }
 }

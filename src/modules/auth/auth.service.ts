@@ -155,6 +155,12 @@ export async function getMe(userId: string) {
   return user;
 }
 
+// ─── Setup status ───────────────────────────────────────
+
+export async function getUserCount(): Promise<number> {
+  return db.user.count({ where: { deletedAt: null } });
+}
+
 // ─── Refresh access token ───────────────────────────────
 
 export async function refreshAccessToken(token: string) {

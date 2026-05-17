@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,9 +8,10 @@ import { Eye, EyeOff, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/Spinner';
 import { ErrorMessage } from '../components/ui/ErrorMessage';
+import * as authApi from '../api/auth';
 
 const schema = z.object({
-  email: z.string().email('Valid email required'),
+  email: z.email('Valid email required'),
   password: z.string().min(1, 'Password required'),
 });
 
@@ -21,6 +23,12 @@ export function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [serverError, setServerError] = useState('');
   const [shake, setShake] = useState(false);
+
+  const { data: setupStatus } = useQuery({
+    queryKey: ['setup-status'],
+    queryFn: authApi.getSetupStatus,
+    staleTime: Infinity,
+  });
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -119,12 +127,14 @@ export function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-text3 text-[13px] mt-5">
-          Admin only:{' '}
-          <Link to="/register" className="text-accent hover:underline">
-            Register new user
-          </Link>
-        </p>
+        {setupStatus?.hasUsers === false && (
+          <p className="text-center text-text3 text-[13px] mt-5">
+            No accounts yet.{' '}
+            <Link to="/register" className="text-accent hover:underline">
+              Set up your account
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useEffect, useState, useCallback, type ReactNode,
+  createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode,
 } from 'react';
 import { setToken } from '../api/client';
 import * as authApi from '../api/auth';
@@ -28,7 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const result = await authApi.refresh();
         setToken(result.accessToken);
-        if (mounted) setState({ user: result.user, token: result.accessToken, loading: false });
+        const user = await authApi.getMe();
+        if (mounted) setState({ user, token: result.accessToken, loading: false });
       } catch {
         setToken(null);
         if (mounted) setState({ user: null, token: null, loading: false });
@@ -53,8 +54,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return state.user ? roles.includes(state.user.role) : false;
   }, [state.user]);
 
+  const value = useMemo<AuthContextValue>(
+    () => ({ user: state.user, token: state.token, loading: state.loading, login, logout, isRole }),
+    [state.user, state.token, state.loading, login, logout, isRole]
+  );
+
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, isRole }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
