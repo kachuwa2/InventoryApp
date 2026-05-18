@@ -34,8 +34,11 @@ export function FilterBar({ search, filters, actions }: FilterBarProps) {
       {filters?.map((f) => (
         <select
           key={f.label}
+          id={`filter-${f.label.toLowerCase().replace(/\s+/g, '-')}`}
+          name={f.label.toLowerCase().replace(/\s+/g, '-')}
           value={f.value}
           onChange={(e) => f.onChange(e.target.value)}
+          aria-label={`Filter by ${f.label}`}
           className="bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-accent transition-colors cursor-pointer"
         >
           <option value="">{f.label}: All</option>

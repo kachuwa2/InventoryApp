@@ -296,7 +296,7 @@ export function PosPage() {
                   />
                 </div>
               ) : (
-                <span className="text-text3 text-[13px]">Walk-in Customer</span>
+                <span className="text-text3 text-[13px]">New Sale</span>
               )}
             </div>
             {selectedCustomer ? (
@@ -314,7 +314,7 @@ export function PosPage() {
           {/* Barcode input */}
           <div className="relative">
             <div className="relative">
-              <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-text3 w-5 h-5" />
+            
               <input
                 ref={barcodeRef}
                 type="text"

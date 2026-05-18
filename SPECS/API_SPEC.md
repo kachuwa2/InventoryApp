@@ -1361,8 +1361,8 @@ Authorization: Bearer <access_token>
 
 **Calculation**:
 - Revenue = SUM(SalesOrder.totalAmount)
-- COGS = SUM(StockMovement.quantity × unitCost) for type='sale'
-- Gross Profit = Net Revenue - COGS
+- COSTS = SUM(StockMovement.quantity × unitCost) for type='sale'
+- Gross Profit = Net Revenue - COSTS
 - Net Profit = Gross Profit - Operating Expenses (if tracked)
 
 ---

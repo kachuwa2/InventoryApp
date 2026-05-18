@@ -34,7 +34,7 @@ export async function updatePurchase(
     supplierReference?: string;
     notes?: string;
     expectedAt?: string;
-    items?: Array<{ productId: string; quantityOrdered: number; unitCost: string }>;
+    items?: Array<{ productId: string; quantityOrdered: number; unitCost: number }>;
   }
 ): Promise<PurchaseOrder> {
   const { data } = await client.put<{ data: PurchaseOrder }>(`/purchases/${id}`, payload);

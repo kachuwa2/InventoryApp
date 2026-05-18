@@ -163,7 +163,7 @@ export async function getProfitLoss(from: Date, to: Date) {
     },
     summary: {
       revenue:     totalRevenue.toFixed(2),
-      cogs:        totalCost.toFixed(2),
+      COSTS:        totalCost.toFixed(2),
       grossProfit: grossProfit.toFixed(2),
       marginPct:   grossMargin.toFixed(2),
     },
@@ -175,7 +175,7 @@ export async function getProfitLoss(from: Date, to: Date) {
           productName: d.name,
           unitsSold:   d.quantity,
           revenue:     d.revenue.toFixed(2),
-          cogs:        d.cost.toFixed(2),
+          COSTS:        d.cost.toFixed(2),
           profit:      d.profit.toFixed(2),
           marginPct:   marginPct.toFixed(2),
         };

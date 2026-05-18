@@ -87,7 +87,7 @@ export function PurchaseDetailPage() {
   const receiveMutation = useMutation({
     mutationFn: () =>
       purchasesApi.receivePurchase(id!, {
-        items: Object.entries(receivedQtys).map(([itemId, qty]) => ({ itemId, quantityReceived: qty })),
+        items: Object.entries(receivedQtys).map(([itemId, qty]) => ({ itemId, quantityReceived: Number(qty) })),
         notes: receiveNotes || undefined,
       }),
     onSuccess: () => {
@@ -164,7 +164,7 @@ export function PurchaseDetailPage() {
         .map((i) => ({
           productId:       i.productId,
           quantityOrdered: Number(i.quantityOrdered),
-          unitCost:        String(Number(i.unitCost)),
+          unitCost:        Number(i.unitCost),
         })),
     });
   }
@@ -421,7 +421,7 @@ export function PurchaseDetailPage() {
                     <input
                       type="number" min={0} max={item.quantityOrdered}
                       value={receivedQtys[item.id] ?? item.quantityOrdered}
-                      onChange={(e) => setReceivedQtys((p) => ({ ...p, [item.id]: parseInt(e.target.value) || 0 }))}
+                      onChange={(e) => setReceivedQtys((p) => ({ ...p, [item.id]: Number(e.target.value) || 0 }))}
                       className="w-24 bg-surface2 border border-border text-text rounded-lg px-2 py-1.5 text-[13px] text-center focus:outline-none focus:border-accent"
                     />
                     {(receivedQtys[item.id] ?? item.quantityOrdered) < item.quantityOrdered && (

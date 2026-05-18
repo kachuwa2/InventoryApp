@@ -556,7 +556,7 @@ export function ProductsPage() {
         search={{
           value: search,
           onChange: setSearch,
-          placeholder: 'Search by name or SKU…',
+          placeholder: 'Search by name or SKU',
           loading: prodLoading,
         }}
         filters={[

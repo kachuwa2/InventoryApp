@@ -158,7 +158,7 @@ export function SalesPage() {
               <div className="flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-accent" />
                 <span className="text-text font-semibold text-[15px]">
-                  {detail?.invoiceNumber ?? 'Loading…'}
+                  {detail?.invoiceNumber ?? 'Receipt Details'}
                 </span>
               </div>
               <button

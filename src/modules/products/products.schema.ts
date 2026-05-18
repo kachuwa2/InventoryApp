@@ -51,7 +51,7 @@ export const createProductSchema = z.object({
 
     // Prices are required when creating a product.
     // You cannot add a product without knowing what it
-    // costs and what you will sell it for.
+    // COSTS and what you will sell it for.
     costPrice: z
       .number({ error: 'Cost price is required' })
       .min(0.01, 'Cost price must be greater than zero'),

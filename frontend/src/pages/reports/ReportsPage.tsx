@@ -80,7 +80,7 @@ function PLTab() {
     .map((p) => ({
       name: p.productName.length > 12 ? p.productName.slice(0, 12) + '…' : p.productName,
       revenue: Number(p.revenue),
-      cogs: Number(p.cogs),
+      COSTS: Number(p.COSTS),
     }));
 
   return (
@@ -124,7 +124,7 @@ function PLTab() {
           {/* Summary cards */}
           <div className="flex gap-4 flex-wrap">
             <StatCard label="Revenue" value={`Rs. ${fmt(data.summary.revenue)}`} variant="success" />
-            <StatCard label="COGS" value={`Rs. ${fmt(data.summary.cogs)}`} variant="danger" />
+            <StatCard label="COSTS" value={`Rs. ${fmt(data.summary.COSTS)}`} variant="danger" />
             <StatCard label="Gross Profit" value={`Rs. ${fmt(data.summary.grossProfit)}`} variant="success" />
             <StatCard
               label="Margin %"
@@ -136,7 +136,7 @@ function PLTab() {
           {/* Bar chart */}
           {chartData.length > 0 && (
             <div className="bg-surface border border-border rounded-xl p-5">
-              <p className="text-text2 text-[13px] font-medium mb-4">Revenue vs COGS (top 8 products)</p>
+              <p className="text-text2 text-[13px] font-medium mb-4">Revenue vs COSTS (top 8 products)</p>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={chartData} barGap={4}>
                   <XAxis
@@ -157,7 +157,7 @@ function PLTab() {
                     formatter={(value) => [`Rs. ${fmt(value as number)}`, '']}
                   />
                   <Bar dataKey="revenue" name="Revenue" fill="#2DD4A0" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="cogs" name="COGS" fill="#F56B6B" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="COSTS" name="COSTS" fill="#F56B6B" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -168,7 +168,7 @@ function PLTab() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  {['Product', 'Units Sold', 'Revenue', 'COGS', 'Profit', 'Margin %'].map((h) => (
+                  {['Product', 'Units Sold', 'Revenue', 'COSTS', 'Profit', 'Margin %'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] font-medium text-text2 uppercase tracking-wider">
                       {h}
                     </th>
@@ -183,7 +183,7 @@ function PLTab() {
                       <td className="px-4 py-3 text-text text-[13px] font-medium">{p.productName}</td>
                       <td className="px-4 py-3 text-text2 text-[13px]">{p.unitsSold}</td>
                       <td className="px-4 py-3 text-success text-[13px]">Rs. {fmt(p.revenue)}</td>
-                      <td className="px-4 py-3 text-danger text-[13px]">Rs. {fmt(p.cogs)}</td>
+                      <td className="px-4 py-3 text-danger text-[13px]">Rs. {fmt(p.COSTS)}</td>
                       <td className="px-4 py-3 text-text text-[13px]">Rs. {fmt(p.profit)}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${marginBg(pct)} ${marginColor(pct)}`}>

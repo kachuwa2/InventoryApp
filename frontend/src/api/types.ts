@@ -224,7 +224,7 @@ export interface DashboardData {
 
 export interface ProfitLossSummary {
   revenue: string;
-  cogs: string;
+  COSTS: string;
   grossProfit: string;
   marginPct: string;
 }
@@ -234,7 +234,7 @@ export interface ProfitLossProduct {
   productName: string;
   unitsSold: number;
   revenue: string;
-  cogs: string;
+  COSTS: string;
   profit: string;
   marginPct: string;
 }
