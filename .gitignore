@@ -5,3 +5,4 @@ build
 /src/generated/prisma
 coverage 
 .claude
+CLAUDE.md
