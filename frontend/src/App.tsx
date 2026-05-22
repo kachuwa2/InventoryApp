@@ -24,6 +24,7 @@ const PosPage         = lazy(() => import('./pages/pos/PosPage').then((m) => ({ 
 const SalesPage       = lazy(() => import('./pages/sales/SalesPage').then((m) => ({ default: m.SalesPage })));
 const CustomersPage   = lazy(() => import('./pages/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })));
 const ReportsPage     = lazy(() => import('./pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
+const SalesAuditPage  = lazy(() => import('./pages/reports/SalesAuditPage').then((m) => ({ default: m.SalesAuditPage })));
 const AuditPage       = lazy(() => import('./pages/audit/AuditPage').then((m) => ({ default: m.AuditPage })));
 const UsersPage       = lazy(() => import('./pages/users/UsersPage').then((m) => ({ default: m.UsersPage })));
 const NotFoundPage    = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
@@ -107,7 +108,8 @@ function AppWithAuth() {
             <Route path="/categories"    element={<CategoriesPage />} />
             <Route path="/suppliers"     element={<SuppliersPage />} />
             <Route path="/purchases/new" element={<NewPurchasePage />} />
-            <Route path="/reports"       element={<ReportsPage />} />
+            <Route path="/reports"              element={<ReportsPage />} />
+            <Route path="/reports/sales-audit" element={<SalesAuditPage />} />
           </Route>
         </Route>
 

@@ -393,7 +393,8 @@ enum SalesOrderStatus {
 }
 
 model SalesOrder {
-  id         String           @id @default(uuid())
+  id            String           @id @default(uuid())
+  invoiceNumber Int              @unique @default(autoincrement()) @map("invoice_number")
 
   // Customer is optional — walk-in customers have no account
   customerId String?          @map("customer_id")

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, Printer, Receipt } from 'lucide-react';
+import { X, Printer, Receipt as ReceiptIcon } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import type { Column } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
+import { Receipt } from '../../components/Receipt';
 import { fmt, fmtDateTime } from '../../utils/cn';
 import * as salesApi from '../../api/sales';
 import type { Sale, SaleType } from '../../api/types';
@@ -139,7 +140,7 @@ export function SalesPage() {
           onRowClick={(r) => setSelectedId(r.id)}
           emptyTitle="No sales found"
           emptyMessage="Sales will appear here once transactions are processed."
-          emptyIcon={<Receipt className="w-10 h-10" />}
+          emptyIcon={<ReceiptIcon className="w-10 h-10" />}
         />
       </div>
 
@@ -156,7 +157,7 @@ export function SalesPage() {
             {/* Panel header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-accent" />
+                <ReceiptIcon className="w-4 h-4 text-accent" />
                 <span className="text-text font-semibold text-[15px]">
                   {detail?.invoiceNumber ?? 'Receipt Details'}
                 </span>
@@ -273,6 +274,26 @@ export function SalesPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Hidden thermal receipt — only visible when printing */}
+      {detail && (
+        <Receipt
+          invoiceNumber={detail.invoiceNumber}
+          createdAt={detail.createdAt}
+          cashierName={detail.createdBy?.name ?? ''}
+          customerName={detail.customer?.name}
+          type={detail.type as 'retail' | 'wholesale'}
+          discount={Number(detail.discount)}
+          totalAmount={Number(detail.totalAmount)}
+          items={(detail.items ?? []).map((item) => ({
+            productName: item.product?.name ?? item.productId,
+            quantity:    Number(item.quantity),
+            unitPrice:   Number(item.unitPrice),
+            discountPct: Number(item.discountPct),
+            lineTotal:   Number(item.lineTotal),
+          }))}
+        />
       )}
     </div>
   );

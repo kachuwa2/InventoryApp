@@ -281,3 +281,64 @@ export async function getSlowMovingProducts(days = 30) {
     (a, b) => (b.daysSinceLastSale ?? 999_999) - (a.daysSinceLastSale ?? 999_999)
   );
 }
+
+// ─── Sales Audit Report ─────────────────────────────────
+export async function getSalesAuditReport(from: Date, to: Date, type?: string) {
+  const sales = await db.salesOrder.findMany({
+    where: {
+      createdAt: { gte: from, lte: to },
+      ...(type && { type: type as any }),
+    },
+    include: {
+      customer:  { select: { id: true, name: true, type: true } },
+      createdBy: { select: { id: true, name: true } },
+      items: {
+        include: {
+          product: { select: { id: true, name: true, sku: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const formatted = sales.map((s) => ({
+    invoiceNumber: `INV-${String(s.invoiceNumber).padStart(4, '0')}`,
+    type:          s.type,
+    status:        s.status,
+    customerName:  s.customer?.name ?? 'Walk-in',
+    cashierName:   s.createdBy.name,
+    discount:      Number(s.discount),
+    totalAmount:   Number(s.totalAmount),
+    itemCount:     s.items.length,
+    createdAt:     s.createdAt.toISOString(),
+    items:         s.items.map((i) => ({
+      productName: i.product.name,
+      sku:         i.product.sku,
+      quantity:    Number(i.quantity),
+      unitPrice:   Number(i.unitPrice),
+      discountPct: Number(i.discountPct),
+      lineTotal:   Number(i.lineTotal),
+    })),
+  }));
+
+  const retail    = formatted.filter((s) => s.type === 'retail');
+  const wholesale = formatted.filter((s) => s.type === 'wholesale');
+
+  const sum = (arr: typeof formatted) => arr.reduce((a, s) => a + s.totalAmount, 0);
+
+  return {
+    period: {
+      from: from.toISOString().split('T')[0],
+      to:   to.toISOString().split('T')[0],
+    },
+    summary: {
+      totalOrders:      formatted.length,
+      totalRevenue:     sum(formatted),
+      retailOrders:     retail.length,
+      retailRevenue:    sum(retail),
+      wholesaleOrders:  wholesale.length,
+      wholesaleRevenue: sum(wholesale),
+    },
+    sales: formatted,
+  };
+}

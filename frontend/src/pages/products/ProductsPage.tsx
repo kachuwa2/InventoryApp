@@ -20,7 +20,8 @@ import { useToast } from '../../contexts/ToastContext';
 import * as productsApi from '../../api/products';
 import * as categoriesApi from '../../api/categories';
 import * as suppliersApi from '../../api/suppliers';
-import type { Product, Category, Supplier, PriceHistory } from '../../api/types';
+import * as inventoryApi from '../../api/inventory';
+import type { Product, Category, Supplier, PriceHistory, InventoryProduct } from '../../api/types';
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -334,6 +335,12 @@ export function ProductsPage() {
     queryFn: () => productsApi.getProducts({ search: search || undefined, categoryId: categoryId || undefined }),
   });
 
+  const { data: inventory = [] } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: inventoryApi.getInventory,
+    staleTime: 30000,
+  });
+
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: categoriesApi.getCategories,
@@ -344,16 +351,30 @@ export function ProductsPage() {
     queryFn: suppliersApi.getSuppliers,
   });
 
+  // Merge product catalog with live stock data from inventory
+  const productsWithStock = useMemo<Product[]>(() => {
+    return products.map((product: Product) => {
+      const inv = inventory.find((i: InventoryProduct) => i.id === product.id);
+      return {
+        ...product,
+        currentStock: inv?.currentStock ?? 0,
+        isLowStock: inv?.isLowStock ?? false,
+        isOutOfStock: inv?.isOutOfStock ?? true,
+        stockValue: inv?.stockValue ?? '0',
+      };
+    });
+  }, [products, inventory]);
+
   // Filtered products (stock status is client-side)
   const filtered = useMemo<Product[]>(() => {
-    if (!stockStatus) return products;
-    return products.filter((p) => {
+    if (!stockStatus) return productsWithStock;
+    return productsWithStock.filter((p) => {
       if (stockStatus === 'out') return p.isOutOfStock;
       if (stockStatus === 'low') return p.isLowStock && !p.isOutOfStock;
       if (stockStatus === 'in') return !p.isLowStock && !p.isOutOfStock;
       return true;
     });
-  }, [products, stockStatus]);
+  }, [productsWithStock, stockStatus]);
 
   // Mutations
   const invalidate = () => {

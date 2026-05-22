@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, ChevronLeft } from 'lucide-react';
+import { Trash2, ChevronLeft, Package, Search, X } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { Spinner } from '../../components/ui/Spinner';
 import { ErrorMessage } from '../../components/ui/ErrorMessage';
 import * as purchasesApi from '../../api/purchases';
 import * as suppliersApi from '../../api/suppliers';
 import * as productsApi from '../../api/products';
-import type { Product } from '../../api/types';
+import * as inventoryApi from '../../api/inventory';
+import type { Product, InventoryProduct } from '../../api/types';
 import { fmt } from '../../utils/cn';
 
 interface LineItem {
@@ -17,6 +18,7 @@ interface LineItem {
   productSku: string;
   quantityOrdered: number;
   unitCost: number;
+  currentStock: number;
 }
 
 export function NewPurchasePage() {
@@ -24,14 +26,36 @@ export function NewPurchasePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Form state
   const [supplierId, setSupplierId] = useState('');
   const [supplierReference, setSupplierReference] = useState('');
   const [expectedAt, setExpectedAt] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<LineItem[]>([]);
-  const [productPickerId, setProductPickerId] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Product search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  // Queries
   const { data: suppliers = [] } = useQuery({
     queryKey: ['suppliers'],
     queryFn: suppliersApi.getSuppliers,
@@ -42,49 +66,49 @@ export function NewPurchasePage() {
     queryFn: () => productsApi.getProducts(),
   });
 
-  const mutation = useMutation({
-    mutationFn: (draft: boolean) =>
-      purchasesApi.createPurchase({
-        supplierId,
-        supplierReference: supplierReference || undefined,
-        notes: notes || undefined,
-        expectedAt: expectedAt || undefined,
-        items: items.map((i) => ({
-          productId: i.productId,
-          quantityOrdered: Number(i.quantityOrdered),
-          unitCost: Number(i.unitCost),
-        })),
-      }).then((po) => ({ po, draft })),
-    onSuccess: ({ po }) => {
-      queryClient.invalidateQueries({ queryKey: ['purchases'] });
-      toast('success', 'Purchase order created');
-      navigate(`/purchases/${po.id}`);
-    },
-    onError: () => toast('error', 'Failed to create purchase order'),
+  const { data: inventory = [] } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: inventoryApi.getInventory,
+    staleTime: 30000,
   });
 
-  function validate() {
-    const e: Record<string, string> = {};
-    if (!supplierId) e.supplierId = 'Supplier is required';
-    if (items.length === 0) e.items = 'At least one product required';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  // Products matching search that are not already added
+  const dropdownProducts = useMemo<Product[]>(() => {
+    if (!debouncedQuery.trim()) return [];
+    const q = debouncedQuery.toLowerCase();
+    return (products as Product[]).filter(
+      (p) =>
+        !items.some((i) => i.productId === p.id) &&
+        (p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
+    );
+  }, [debouncedQuery, products, items]);
+
+  function getStockInfo(productId: string) {
+    const inv = (inventory as InventoryProduct[]).find((i) => i.id === productId);
+    return { stock: inv?.currentStock ?? 0, reorder: inv?.reorderPoint ?? 0 };
   }
 
-  function addProduct() {
-    if (!productPickerId) return;
-    if (items.some((i) => i.productId === productPickerId)) {
-      setProductPickerId('');
+  function addProduct(product: Product) {
+    if (items.some((i) => i.productId === product.id)) {
+      toast('warning', 'Already added');
       return;
     }
-    const p = products.find((prod: Product) => prod.id === productPickerId);
-    if (!p) return;
-    const cost = parseFloat(p.priceHistory?.[0]?.costPrice ?? '0') || 0;
+    const inv = (inventory as InventoryProduct[]).find((i) => i.id === product.id);
+    const cost = Number(product.priceHistory?.[0]?.costPrice ?? '0') || 0;
     setItems((prev) => [
       ...prev,
-      { productId: p.id, productName: p.name, productSku: p.sku, quantityOrdered: 1, unitCost: cost },
+      {
+        productId: product.id,
+        productName: product.name,
+        productSku: product.sku,
+        quantityOrdered: 1,
+        unitCost: cost,
+        currentStock: inv?.currentStock ?? 0,
+      },
     ]);
-    setProductPickerId('');
+    setSearchQuery('');
+    setDebouncedQuery('');
+    setShowDropdown(false);
     setErrors((e) => ({ ...e, items: '' }));
   }
 
@@ -102,14 +126,44 @@ export function NewPurchasePage() {
     );
   }
 
-  const runningTotal = items.reduce(
-    (sum, i) => sum + i.quantityOrdered * i.unitCost,
-    0
-  );
+  function validate() {
+    const e: Record<string, string> = {};
+    if (!supplierId) e.supplierId = 'Please select a supplier';
+    if (items.length === 0) e.items = 'Add at least one product';
+    else if (items.some((i) => i.quantityOrdered <= 0)) e.items = 'Check item quantities';
+    else if (items.some((i) => i.unitCost <= 0)) e.items = 'Check item costs';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
 
-  const availableProducts = products.filter(
-    (p: Product) => !items.some((i) => i.productId === p.id)
-  );
+  const totalUnits = items.reduce((s, i) => s + i.quantityOrdered, 0);
+  const runningTotal = items.reduce((s, i) => s + i.quantityOrdered * i.unitCost, 0);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      purchasesApi.createPurchase({
+        supplierId,
+        ...(supplierReference?.trim() && { supplierReference: supplierReference.trim() }),
+        ...(notes?.trim() && { notes: notes.trim() }),
+        ...(expectedAt && { expectedAt }),
+        items: items
+          .map((item) => ({
+            productId: item.productId,
+            quantityOrdered: item.quantityOrdered,
+            unitCost: String(item.unitCost),
+          }))
+          .filter((item) => item.productId && item.quantityOrdered > 0 && Number(item.unitCost) > 0),
+      }),
+    onSuccess: (po) => {
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      toast('success', 'Purchase order created');
+      navigate(`/purchases/${po.id}`);
+    },
+    onError: () => toast('error', 'Failed to create purchase order'),
+  });
+
+  const fieldCls =
+    'w-full bg-surface2 border border-border text-text placeholder-text3 rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:border-accent transition-colors';
 
   return (
     <div className="max-w-4xl">
@@ -130,18 +184,20 @@ export function NewPurchasePage() {
       <div className="grid grid-cols-3 gap-5">
         {/* Main form */}
         <div className="col-span-2 flex flex-col gap-5">
-          {/* PO Header */}
+          {/* Order Details */}
           <div className="bg-surface border border-border rounded-xl p-5">
             <h2 className="text-[14px] font-semibold text-text mb-4">Order Details</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">
+                <label htmlFor="supplier" className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">
                   Supplier <span className="text-danger">*</span>
                 </label>
                 <select
+                  id="supplier"
+                  name="supplierId"
                   value={supplierId}
                   onChange={(e) => { setSupplierId(e.target.value); setErrors((err) => ({ ...err, supplierId: '' })); }}
-                  className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:border-accent transition-colors cursor-pointer"
+                  className={`${fieldCls} cursor-pointer`}
                 >
                   <option value="">Select supplier…</option>
                   {suppliers.map((s) => (
@@ -152,113 +208,209 @@ export function NewPurchasePage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">Supplier Reference</label>
+                <label htmlFor="supplier-reference" className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">Supplier Reference</label>
                 <input
+                  id="supplier-reference"
+                  name="supplierReference"
                   value={supplierReference}
                   onChange={(e) => setSupplierReference(e.target.value)}
                   placeholder="e.g. INV-2024-001"
-                  className="w-full bg-surface2 border border-border text-text placeholder-text3 rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:border-accent transition-colors"
+                  className={fieldCls}
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">Expected Delivery</label>
+                <label htmlFor="expected-at" className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">Expected Delivery</label>
                 <input
+                  id="expected-at"
+                  name="expectedAt"
                   type="date"
                   value={expectedAt}
                   onChange={(e) => setExpectedAt(e.target.value)}
-                  className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:border-accent transition-colors"
+                  className={fieldCls}
                 />
               </div>
 
               <div className="col-span-2">
-                <label className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">Notes</label>
+                <label htmlFor="notes" className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">Notes</label>
                 <textarea
+                  id="notes"
+                  name="notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Optional notes…"
-                  className="w-full bg-surface2 border border-border text-text placeholder-text3 rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:border-accent transition-colors resize-none"
+                  className={`${fieldCls} resize-none`}
                 />
               </div>
             </div>
           </div>
 
-          {/* Line items */}
+          {/* Line Items */}
           <div className="bg-surface border border-border rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[14px] font-semibold text-text">Line Items</h2>
+            <h2 className="text-[14px] font-semibold text-text mb-4">Line Items</h2>
+
+            {/* Product search */}
+            <div className="relative mb-4" ref={searchRef}>
               <div className="flex items-center gap-2">
-                <select
-                  value={productPickerId}
-                  onChange={(e) => setProductPickerId(e.target.value)}
-                  className="bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-accent transition-colors cursor-pointer"
-                >
-                  <option value="">Add product…</option>
-                  {availableProducts.map((p: Product) => (
-                    <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
-                  ))}
-                </select>
-                <button
-                  onClick={addProduct}
-                  disabled={!productPickerId}
-                  className="p-2 bg-accent hover:bg-accent/90 text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                <Search className="text-text3 w-4 h-4 shrink-0 pointer-events-none" />
+                <input
+                  id="product-search"
+                  name="productSearch"
+                  type="text"
+                  placeholder="Search products by name or SKU…"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }}
+                  onFocus={() => { if (searchQuery.trim()) setShowDropdown(true); }}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setShowDropdown(false); }}
+                  className="flex-1 min-w-0 bg-surface2 border border-border text-text placeholder-text3 rounded-lg px-3 pr-9 py-2.5 text-[13px] focus:outline-none focus:border-accent transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => { setSearchQuery(''); setDebouncedQuery(''); setShowDropdown(false); }}
+                    className="ml-2 text-text3 hover:text-text transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
+
+              {showDropdown && searchQuery.trim() && (
+                <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-surface border border-border rounded-xl shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+                  {dropdownProducts.length === 0 ? (
+                    <div className="px-4 py-3 text-[13px] text-text3">No products found</div>
+                  ) : (
+                    dropdownProducts.map((product) => {
+                      const { stock, reorder } = getStockInfo(product.id);
+                      const price = product.priceHistory?.[0];
+                      const badgeCls =
+                        stock === 0
+                          ? 'text-danger bg-danger/10 border-danger/20'
+                          : stock <= reorder
+                          ? 'text-warning bg-warning/10 border-warning/20'
+                          : 'text-success bg-success/10 border-success/20';
+                      const badgeLabel =
+                        stock === 0 ? 'Out of stock' : stock <= reorder ? `Low: ${stock}` : `${stock} in stock`;
+                      return (
+                        <button
+                          key={product.id}
+                          onClick={() => addProduct(product)}
+                          className="w-full text-left px-4 py-3 hover:bg-surface2 transition-colors border-b border-border/50 last:border-0"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[13px] font-semibold text-text">{product.name}</span>
+                            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${badgeCls}`}>
+                              {badgeLabel}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <span className="text-[11px] font-mono text-text3">{product.sku}</span>
+                            {price && (
+                              <span className="text-[11px] text-text3">Cost: Rs. {fmt(price.costPrice)}</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
+
             <ErrorMessage message={errors.items} />
 
             {items.length === 0 ? (
-              <div className="py-8 text-center text-text3 text-[13px]">
-                No items added yet. Select a product above to add it.
+              <div className="border-2 border-dashed border-border rounded-xl py-10 text-center">
+                <Package className="w-10 h-10 text-text3 mx-auto mb-3" />
+                <p className="text-[14px] font-medium text-text2">No products added yet</p>
+                <p className="text-[12px] text-text3 mt-1">Search for a product above to add it to this order</p>
               </div>
             ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    {['Product', 'SKU', 'Qty', 'Unit Cost (Rs.)', 'Line Total', ''].map((h) => (
-                      <th key={h} className="px-3 py-2 text-left text-[11px] font-medium text-text2 uppercase tracking-wide">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.productId} className="border-b border-border/50">
-                      <td className="px-3 py-3 text-[13px] text-text font-medium">{item.productName}</td>
-                      <td className="px-3 py-3 text-[12px] font-mono text-text2">{item.productSku}</td>
-                      <td className="px-3 py-3">
-                        <input
-                          type="number"
-                          min={1}
-                          value={item.quantityOrdered}
-                          onChange={(e) => updateItem(item.productId, 'quantityOrdered', e.target.value)}
-                          className="w-20 bg-surface2 border border-border text-text rounded-lg px-2 py-1.5 text-[13px] text-center focus:outline-none focus:border-accent transition-colors"
-                        />
-                      </td>
-                      <td className="px-3 py-3">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={item.unitCost}
-                          onChange={(e) => updateItem(item.productId, 'unitCost', e.target.value)}
-                          className="w-28 bg-surface2 border border-border text-text rounded-lg px-2 py-1.5 text-[13px] focus:outline-none focus:border-accent transition-colors"
-                        />
-                      </td>
-                      <td className="px-3 py-3 text-[13px] font-mono text-text">
-                        {fmt(item.quantityOrdered * item.unitCost)}
-                      </td>
-                      <td className="px-3 py-3">
-                        <button onClick={() => removeItem(item.productId)} className="text-text3 hover:text-danger transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+              <>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {['Product', 'Qty Ordered', 'Unit Cost (Rs.)', 'Line Total', ''].map((h) => (
+                        <th key={h} className="px-3 py-2 text-left text-[11px] font-medium text-text2 uppercase tracking-wide">{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => {
+                      const qtyExceedsStock = item.currentStock > 0 && item.quantityOrdered > item.currentStock;
+                      return (
+                        <tr key={item.productId} className="border-b border-border/50">
+                          <td className="px-3 py-3">
+                            <p className="text-[13px] font-semibold text-text">{item.productName}</p>
+                            <p className="text-[11px] font-mono text-text3">
+                              {item.productSku}
+                              {item.currentStock > 0 && (
+                                <span className="ml-2">· {item.currentStock} in stock</span>
+                              )}
+                            </p>
+                          </td>
+                          <td className="px-3 py-3">
+                            <input
+                              id={`quantity-${item.productId}`}
+                              name={`quantity-${item.productId}`}
+                              aria-label={`Quantity for ${item.productName}`}
+                              type="number"
+                              min={1}
+                              value={item.quantityOrdered}
+                              onChange={(e) => updateItem(item.productId, 'quantityOrdered', e.target.value)}
+                              className={`w-20 bg-surface2 border text-text rounded-lg px-2 py-1.5 text-[13px] text-center focus:outline-none transition-colors ${
+                                qtyExceedsStock
+                                  ? 'border-danger focus:border-danger'
+                                  : 'border-border focus:border-accent'
+                              }`}
+                            />
+                          </td>
+                          <td className="px-3 py-3">
+                            <input
+                              id={`unitCost-${item.productId}`}
+                              name={`unitCost-${item.productId}`}
+                              aria-label={`Unit cost for ${item.productName}`}
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              value={item.unitCost}
+                              onChange={(e) => updateItem(item.productId, 'unitCost', e.target.value)}
+                              className="w-28 bg-surface2 border border-border text-text rounded-lg px-2 py-1.5 text-[13px] focus:outline-none focus:border-accent transition-colors"
+                            />
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="text-[13px] font-mono font-semibold text-success">
+                              Rs. {fmt(item.quantityOrdered * item.unitCost)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3">
+                            <button
+                              onClick={() => removeItem(item.productId)}
+                              className="text-text3 hover:text-danger transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Order summary card */}
+                <div className="mt-4 bg-surface2 border border-border rounded-xl px-5 py-4 flex items-center justify-between">
+                  <span className="text-[13px] text-text2">
+                    <span className="font-semibold text-text">{items.length}</span>{' '}
+                    product{items.length !== 1 ? 's' : ''} ·{' '}
+                    <span className="font-semibold text-text">{totalUnits}</span> total units
+                  </span>
+                  <span className="text-[14px] font-semibold text-text2">
+                    Estimated Order Value:{' '}
+                    <span className="font-mono text-accent">Rs. {fmt(runningTotal)}</span>
+                  </span>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -274,7 +426,7 @@ export function NewPurchasePage() {
               </div>
               <div className="flex justify-between text-[13px]">
                 <span className="text-text2">Total Units</span>
-                <span className="text-text">{items.reduce((s, i) => s + i.quantityOrdered, 0)}</span>
+                <span className="text-text">{totalUnits}</span>
               </div>
               <div className="border-t border-border my-1" />
               <div className="flex justify-between text-[15px] font-semibold">
@@ -284,7 +436,7 @@ export function NewPurchasePage() {
             </div>
 
             <button
-              onClick={() => { if (validate()) mutation.mutate(true); }}
+              onClick={() => { if (validate()) mutation.mutate(); }}
               disabled={mutation.isPending}
               className="flex items-center justify-center gap-2 w-full py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-60 mb-2"
             >

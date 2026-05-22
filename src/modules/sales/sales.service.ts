@@ -8,12 +8,16 @@ import { CreateSaleInput } from './sales.schema';
 import { getCurrentStock } from '../inventory/inventory.service';
 import { getCurrentPrice } from '../products/products.service';
 
+function formatInvoiceNumber(n: number): string {
+  return `INV-${String(n).padStart(4, '0')}`;
+}
+
 // ─── Get all sales ──────────────────────────────────────
 export async function getAllSales(filters?: {
   customerId?: string;
   type?:       string;
 }) {
-  return db.salesOrder.findMany({
+  const sales = await db.salesOrder.findMany({
     where: {
       ...(filters?.customerId && { customerId: filters.customerId }),
       ...(filters?.type       && { type: filters.type as any }),
@@ -25,6 +29,7 @@ export async function getAllSales(filters?: {
     },
     orderBy: { createdAt: 'desc' },
   });
+  return sales.map(s => ({ ...s, invoiceNumber: formatInvoiceNumber(s.invoiceNumber) }));
 }
 
 // ─── Get single sale ────────────────────────────────────
@@ -45,7 +50,7 @@ export async function getSaleById(id: string) {
   });
 
   if (!sale) throw new NotFoundError('Sale');
-  return sale;
+  return { ...sale, invoiceNumber: formatInvoiceNumber(sale.invoiceNumber) };
 }
 
 // ─── Create sale ────────────────────────────────────────
@@ -192,7 +197,7 @@ export async function createSale(
       },
     });
 
-    return sale;
+    return { ...sale, invoiceNumber: formatInvoiceNumber(sale.invoiceNumber) };
   });
 }
 

@@ -1,5 +1,5 @@
 import client from './client';
-import type { DashboardData, ProfitLossData, TopProduct, SlowMovingProduct } from './types';
+import type { DashboardData, ProfitLossData, TopProduct, SlowMovingProduct, SalesAuditReport } from './types';
 
 export async function getDashboard(): Promise<DashboardData> {
   const { data } = await client.get<{ data: DashboardData }>('/reports/dashboard');
@@ -23,6 +23,17 @@ export async function getTopProducts(limit?: number): Promise<TopProduct[]> {
 export async function getSlowMoving(days?: number): Promise<SlowMovingProduct[]> {
   const { data } = await client.get<{ data: SlowMovingProduct[] }>('/reports/slow-moving', {
     params: { days },
+  });
+  return data.data;
+}
+
+export async function getSalesAuditReport(
+  from: string,
+  to: string,
+  type?: string
+): Promise<SalesAuditReport> {
+  const { data } = await client.get<{ data: SalesAuditReport }>('/reports/sales-audit', {
+    params: { from, to, ...(type && { type }) },
   });
   return data.data;
 }

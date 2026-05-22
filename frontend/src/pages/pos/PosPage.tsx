@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Barcode, X, Minus, Plus, Printer, ShoppingCart, User, ChevronRight, CheckCircle,
+  Barcode, X, Minus, Plus, Printer, ShoppingCart, User, ChevronRight, CheckCircle, Camera,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
+import { Receipt } from '../../components/Receipt';
+import { BarcodeScanner } from '../../components/BarcodeScanner';
 import { fmt } from '../../utils/cn';
 import * as productsApi from '../../api/products';
 import * as customersApi from '../../api/customers';
@@ -55,6 +57,7 @@ export function PosPage() {
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
 
   const [customerSearch, setCustomerSearch] = useState('');
@@ -313,8 +316,7 @@ export function PosPage() {
 
           {/* Barcode input */}
           <div className="relative">
-            <div className="relative">
-            
+            <div className="relative flex gap-2">
               <input
                 ref={barcodeRef}
                 type="text"
@@ -324,12 +326,19 @@ export function PosPage() {
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                 placeholder="Scan barcode or search product — press Enter to add"
-                className={`w-full bg-surface border rounded-xl pl-10 pr-4 py-3 text-[14px] text-text placeholder-text3 focus:outline-none transition-all ${
+                className={`flex-1 bg-surface border rounded-xl px-4 py-3 text-[14px] text-text placeholder-text3 focus:outline-none transition-all ${
                   barcodeFlash
                     ? 'border-danger ring-1 ring-danger'
                     : 'border-border focus:border-accent'
                 }`}
               />
+              <button
+                onClick={() => setShowScanner(true)}
+                title="Use camera scanner"
+                className="px-3 py-3 bg-surface border border-border rounded-xl text-text3 hover:text-accent hover:border-accent/50 transition-colors shrink-0"
+              >
+                <Camera className="w-5 h-5" />
+              </button>
             </div>
             {barcodeError && (
               <p className="text-danger text-[12px] mt-1.5 ml-1">{barcodeError}</p>
@@ -767,6 +776,40 @@ export function PosPage() {
           </div>
         )}
       </Modal>
+
+      {/* Hidden thermal receipt — only visible when printing */}
+      {completedSale && (
+        <Receipt
+          invoiceNumber={completedSale.invoiceNumber}
+          createdAt={completedSale.createdAt}
+          cashierName={completedSale.createdBy?.name ?? ''}
+          customerName={completedSale.customer?.name}
+          type={completedSale.type as 'retail' | 'wholesale'}
+          discount={Number(completedSale.discount)}
+          totalAmount={Number(completedSale.totalAmount)}
+          items={cartSnapshot.map((item) => ({
+            productName: item.name,
+            quantity:    item.quantity,
+            unitPrice:   item.unitPrice,
+            discountPct: item.discountPct,
+            lineTotal:   lineTotal(item),
+          }))}
+        />
+      )}
+
+      {/* Camera barcode scanner overlay */}
+      {showScanner && (
+        <BarcodeScanner
+          onScan={(code) => {
+            handleBarcodeChange(code);
+            const match = products.find(
+              (p) => p.barcode === code || p.sku.toLowerCase() === code.toLowerCase()
+            );
+            if (match) addToCart(match);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 }

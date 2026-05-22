@@ -4,6 +4,7 @@ import {
   profitLoss,
   topProducts,
   slowMoving,
+  salesAudit,
 } from './reports.controller';
 import { authenticate } from '../../middleware/authentication';
 import { authorize }    from '../../middleware/authorize';
@@ -20,5 +21,6 @@ router.get('/dashboard',     dashboard);
 router.get('/profit-loss',   profitLoss);
 router.get('/top-products',  topProducts);
 router.get('/slow-moving',   slowMoving);
+router.get('/sales-audit',   salesAudit);
 
 export default router;

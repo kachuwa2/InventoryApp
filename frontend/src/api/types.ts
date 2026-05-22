@@ -264,6 +264,42 @@ export interface SlowMovingProduct {
   daysSinceLastSale: number | null;
 }
 
+// Sales Audit Report
+export interface SalesAuditItem {
+  productName: string;
+  sku:         string;
+  quantity:    number;
+  unitPrice:   number;
+  discountPct: number;
+  lineTotal:   number;
+}
+
+export interface SalesAuditSale {
+  invoiceNumber: string;
+  type:          'retail' | 'wholesale';
+  status:        string;
+  customerName:  string;
+  cashierName:   string;
+  discount:      number;
+  totalAmount:   number;
+  itemCount:     number;
+  createdAt:     string;
+  items:         SalesAuditItem[];
+}
+
+export interface SalesAuditReport {
+  period: { from: string; to: string };
+  summary: {
+    totalOrders:      number;
+    totalRevenue:     number;
+    retailOrders:     number;
+    retailRevenue:    number;
+    wholesaleOrders:  number;
+    wholesaleRevenue: number;
+  };
+  sales: SalesAuditSale[];
+}
+
 // Audit
 export interface AuditLog {
   id: string;

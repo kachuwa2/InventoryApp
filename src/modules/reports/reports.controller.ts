@@ -4,6 +4,7 @@ import {
   getProfitLoss,
   getTopProducts,
   getSlowMovingProducts,
+  getSalesAuditReport,
 } from './reports.service';
 import { ValidationError } from '../../utils/errors';
 
@@ -84,6 +85,37 @@ export async function slowMoving(
       ? parseInt(req.query.days as string)
       : 30;
     const data = await getSlowMovingProducts(days);
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function salesAudit(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { from, to, type } = req.query;
+
+    if (!from || !to) {
+      throw new ValidationError('Provide both "from" and "to" date parameters.');
+    }
+
+    const fromDate = new Date(from as string);
+    const toDate   = new Date(to   as string);
+    toDate.setHours(23, 59, 59, 999);
+
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      throw new ValidationError('Invalid date format. Use YYYY-MM-DD.');
+    }
+
+    const data = await getSalesAuditReport(
+      fromDate,
+      toDate,
+      type as string | undefined
+    );
     res.json({ success: true, data });
   } catch (error) {
     next(error);

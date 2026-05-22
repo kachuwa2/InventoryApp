@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { LoadingState } from './LoadingState';
 import { EmptyState } from './EmptyState';
 
@@ -36,25 +36,27 @@ export function DataTable<T>({
     else { setSortKey(key); setSortDir('asc'); }
   }
 
-  const py = compact ? 'py-2.5' : 'py-3.5';
+  const cellPy = compact ? 'py-2.5' : 'py-3.5';
 
   return (
     <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse">
-        <thead>
-          <tr className="border-b border-border">
+        <thead className="sticky top-0 z-10">
+          <tr className="bg-surface2 border-b border-border">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`px-4 ${compact ? 'py-2' : 'py-3'} text-left text-[11px] font-medium text-text2 uppercase tracking-wider whitespace-nowrap ${col.sortable ? 'cursor-pointer select-none hover:text-text' : ''} ${col.headerClass ?? ''}`}
+                className={`px-4 ${compact ? 'py-2.5' : 'py-3'} text-left text-[11px] font-semibold text-text3 uppercase tracking-[0.06em] whitespace-nowrap ${col.sortable ? 'cursor-pointer select-none hover:text-text2' : ''} ${col.headerClass ?? ''}`}
                 onClick={col.sortable ? () => handleSort(col.key) : undefined}
               >
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5">
                   {col.header}
-                  {col.sortable && sortKey === col.key && (
-                    sortDir === 'asc'
-                      ? <ChevronUp className="w-3 h-3" />
-                      : <ChevronDown className="w-3 h-3" />
+                  {col.sortable && (
+                    sortKey === col.key
+                      ? sortDir === 'asc'
+                        ? <ChevronUp className="w-3 h-3 text-accent" />
+                        : <ChevronDown className="w-3 h-3 text-accent" />
+                      : <ChevronsUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50" />
                   )}
                 </span>
               </th>
@@ -63,22 +65,31 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {loading ? (
-            <tr><td colSpan={columns.length} className="p-0">
-              <LoadingState rows={5} cols={columns.length} />
-            </td></tr>
+            <tr>
+              <td colSpan={columns.length} className="p-0">
+                <LoadingState rows={6} cols={columns.length} />
+              </td>
+            </tr>
           ) : data.length === 0 ? (
-            <tr><td colSpan={columns.length}>
-              <EmptyState icon={emptyIcon} title={emptyTitle} message={emptyMessage} />
-            </td></tr>
+            <tr>
+              <td colSpan={columns.length}>
+                <EmptyState icon={emptyIcon} title={emptyTitle} message={emptyMessage} />
+              </td>
+            </tr>
           ) : (
             data.map((row, i) => (
               <tr
                 key={rowKey(row)}
                 onClick={() => onRowClick?.(row)}
-                className={`border-b border-border/50 transition-colors ${onRowClick ? 'cursor-pointer hover:bg-surface2' : ''}`}
+                className={`border-b border-border transition-colors ${
+                  onRowClick ? 'cursor-pointer hover:bg-surface2' : ''
+                }`}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={`px-4 ${py} text-[13px] text-text ${col.className ?? ''}`}>
+                  <td
+                    key={col.key}
+                    className={`px-4 ${cellPy} text-[14px] text-text align-middle ${col.className ?? ''}`}
+                  >
                     {col.render(row, i)}
                   </td>
                 ))}

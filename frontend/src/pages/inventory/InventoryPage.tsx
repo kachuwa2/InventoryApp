@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
@@ -22,7 +22,10 @@ import { Spinner } from '../../components/ui/Spinner';
 import { fmt, fmtDateTime } from '../../utils/cn';
 import { useToast } from '../../contexts/ToastContext';
 import * as inventoryApi from '../../api/inventory';
-import type { InventoryProduct, StockMovement, MovementType } from '../../api/types';
+import * as categoriesApi from '../../api/categories';
+import * as suppliersApi from '../../api/suppliers';
+import { SearchInput } from '../../components/ui/SearchInput';
+import type { InventoryProduct, StockMovement, MovementType, Category, Supplier } from '../../api/types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -369,8 +372,16 @@ export function InventoryPage() {
   const [activeTab, setActiveTab] = useState<TabId>('stock');
   const [adjustingProduct, setAdjustingProduct] = useState<InventoryProduct | null>(null);
 
+  // Global FilterBar state (persists across Stock / Low-Stock / Valuation tabs)
+  const [search, setSearch] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [stockStatus, setStockStatus] = useState('');
+  const [supplierId, setSupplierId] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+
   // Movement Log filters
   const [productIdFilter, setProductIdFilter] = useState('');
+  const [movementSearch, setMovementSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -379,6 +390,16 @@ export function InventoryPage() {
   const { data: inventory = [], isLoading: loadingInventory } = useQuery({
     queryKey: ['inventory'],
     queryFn: inventoryApi.getInventory,
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: categoriesApi.getCategories,
+  });
+
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: suppliersApi.getSuppliers,
   });
 
   const { data: lowStock = [], isLoading: loadingLowStock } = useQuery({
@@ -402,6 +423,63 @@ export function InventoryPage() {
   const stockColumns = buildStockColumns(setAdjustingProduct, false, navigate);
   const lowStockColumns = buildStockColumns(setAdjustingProduct, true, navigate);
 
+  // Global filtered + sorted inventory (used by Stock Levels and Valuation tabs)
+  const filteredInventory = useMemo(() => {
+    let items = [...inventory];
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      items = items.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+      );
+    }
+    if (categoryId) items = items.filter((p) => p.category?.id === categoryId);
+    if (supplierId) items = items.filter((p) => p.supplier?.id === supplierId);
+    if (stockStatus === 'in_stock') {
+      items = items.filter((p) => p.currentStock > p.reorderPoint);
+    } else if (stockStatus === 'low_stock') {
+      items = items.filter((p) => p.currentStock > 0 && p.currentStock <= p.reorderPoint);
+    } else if (stockStatus === 'out_of_stock') {
+      items = items.filter((p) => p.currentStock === 0);
+    }
+
+    if (sortBy === 'stock_asc') {
+      items.sort((a, b) => a.currentStock - b.currentStock);
+    } else if (sortBy === 'stock_desc') {
+      items.sort((a, b) => b.currentStock - a.currentStock);
+    } else if (sortBy === 'value_desc') {
+      items.sort((a, b) => parseFloat(b.stockValue) - parseFloat(a.stockValue));
+    } else {
+      items.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return items;
+  }, [inventory, search, categoryId, supplierId, stockStatus, sortBy]);
+
+  // Low-stock tab: apply same filters (except stockStatus) to lowStock API data
+  const filteredLowStock = useMemo(() => {
+    let items = [...lowStock];
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      items = items.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+      );
+    }
+    if (categoryId) items = items.filter((p) => p.category?.id === categoryId);
+    if (supplierId) items = items.filter((p) => p.supplier?.id === supplierId);
+    return items;
+  }, [lowStock, search, categoryId, supplierId]);
+
+  // Movement log: filter the inventory product list by text search
+  const movementInventoryOptions = useMemo(() => {
+    if (!movementSearch.trim()) return inventory;
+    const q = movementSearch.toLowerCase();
+    return inventory.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+    );
+  }, [inventory, movementSearch]);
+
+  const hasActiveFilters = !!(search || categoryId || stockStatus || supplierId || sortBy !== 'name');
+
   // Filtered movements
   const filteredMovements = movements.filter((m) => {
     if (typeFilter && m.type !== typeFilter) return false;
@@ -410,7 +488,7 @@ export function InventoryPage() {
     return true;
   });
 
-  // Total stock value
+  // Total stock value (always from full inventory, not filtered)
   const totalStockValue = inventory.reduce(
     (sum, p) => sum + parseFloat(p.stockValue),
     0
@@ -422,8 +500,8 @@ export function InventoryPage() {
     value: parseFloat(c.totalValue),
   }));
 
-  // Valuation product table: products sorted by stockValue desc
-  const valuationProducts = [...inventory]
+  // Valuation product table: filtered products sorted by stockValue desc
+  const valuationProducts = [...filteredInventory]
     .sort((a, b) => parseFloat(b.stockValue) - parseFloat(a.stockValue));
 
   const valProductCols: Column<InventoryProduct>[] = [
@@ -523,12 +601,62 @@ export function InventoryPage() {
   const inputClass =
     'bg-surface2 border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-text3 focus:outline-none focus:border-accent transition-colors';
 
+  const selectCls =
+    'bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-accent transition-colors cursor-pointer';
+
   return (
     <div className="p-6">
       <PageHeader
         title="Inventory"
         subtitle={`Total stock value: Rs. ${fmt(totalStockValue)}`}
       />
+
+      {/* Global FilterBar */}
+      <div className="flex flex-wrap gap-3 mb-4 items-center">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search name or SKU…"
+          className="w-60"
+        />
+        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={selectCls}>
+          <option value="">Category: All</option>
+          {(categories as Category[]).map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <select value={stockStatus} onChange={(e) => setStockStatus(e.target.value)} className={selectCls}>
+          <option value="">Status: All</option>
+          <option value="in_stock">In Stock</option>
+          <option value="low_stock">Low Stock</option>
+          <option value="out_of_stock">Out of Stock</option>
+        </select>
+        <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className={selectCls}>
+          <option value="">Supplier: All</option>
+          {(suppliers as Supplier[]).map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={selectCls}>
+          <option value="name">Sort: Name</option>
+          <option value="stock_asc">Stock ↑</option>
+          <option value="stock_desc">Stock ↓</option>
+          <option value="value_desc">Value ↓</option>
+        </select>
+        {hasActiveFilters && (
+          <button
+            onClick={() => { setSearch(''); setCategoryId(''); setStockStatus(''); setSupplierId(''); setSortBy('name'); }}
+            className="px-3 py-2 text-[13px] text-text2 hover:text-danger border border-border rounded-lg hover:border-danger transition-colors"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+      {hasActiveFilters && (
+        <p className="text-[12px] text-text3 mb-4">
+          Showing {filteredInventory.length} of {inventory.length} products
+        </p>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -567,7 +695,7 @@ export function InventoryPage() {
         <div className="bg-surface border border-border rounded-xl overflow-hidden">
           <DataTable
             columns={stockColumns}
-            data={inventory}
+            data={filteredInventory}
             loading={loadingInventory}
             rowKey={(r) => r.id}
             emptyTitle="No products found"
@@ -581,7 +709,7 @@ export function InventoryPage() {
         <div className="bg-surface border border-border rounded-xl overflow-hidden">
           <DataTable
             columns={lowStockColumns}
-            data={lowStock}
+            data={filteredLowStock}
             loading={loadingLowStock}
             rowKey={(r) => r.id}
             emptyTitle="No low-stock products"
@@ -670,7 +798,16 @@ export function InventoryPage() {
         <div className="flex flex-col gap-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-3 items-end">
-            {/* Product picker */}
+            {/* Product search + picker */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-text2 font-medium uppercase tracking-wide">Search Product</label>
+              <SearchInput
+                value={movementSearch}
+                onChange={(v) => { setMovementSearch(v); setProductIdFilter(''); }}
+                placeholder="Filter products…"
+                className="w-48"
+              />
+            </div>
             <div className="flex flex-col gap-1">
               <label className="text-[11px] text-text2 font-medium uppercase tracking-wide">Product</label>
               <select
@@ -679,7 +816,7 @@ export function InventoryPage() {
                 className={`${inputClass} min-w-50`}
               >
                 <option value="">Select a product…</option>
-                {inventory.map((p) => (
+                {movementInventoryOptions.map((p) => (
                   <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
                 ))}
               </select>

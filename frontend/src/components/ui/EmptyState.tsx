@@ -9,16 +9,20 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
       {icon && (
-        <div className="text-text3 mb-4 opacity-50">{icon}</div>
+        <div className="text-text3 mb-4 opacity-40 [&>svg]:w-10 [&>svg]:h-10">
+          {icon}
+        </div>
       )}
-      <p className="text-text text-[15px] font-semibold mb-1">{title}</p>
-      {message && <p className="text-text2 text-[13px] mb-4">{message}</p>}
+      <p className="text-[15px] font-medium text-text mb-1.5">{title}</p>
+      {message && (
+        <p className="text-[13px] text-text2 max-w-xs mb-5">{message}</p>
+      )}
       {action && (
         <button
           onClick={action.onClick}
-          className="px-4 py-2 bg-accent text-white rounded-lg text-[13px] font-medium hover:bg-accent/90 transition-colors"
+          className="px-4 py-2 bg-accent hover:bg-accent2 text-white rounded-lg text-[13px] font-medium transition-colors"
         >
           {action.label}
         </button>
