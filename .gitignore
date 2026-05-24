@@ -6,3 +6,6 @@ build
 coverage 
 .claude
 CLAUDE.md
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local

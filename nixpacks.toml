@@ -7,8 +7,9 @@ cmds = ["npm install"]
 [phases.build]
 cmds = [
   "npx prisma generate --config prisma.config.mjs",
-  "npx prisma migrate deploy",
-  "npm run build"
+  "npx tsc",
+  "node scripts/copy-prisma.js",
+  "npx prisma migrate deploy"
 ]
 
 [start]

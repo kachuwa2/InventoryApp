@@ -41,11 +41,30 @@ const app = express();
 
 // ─── CORS ───────────────────────────────────────────────────
 // Allow the Vite dev server (any localhost port) to make credentialed requests
-app.use(cors({
-  origin: /^http:\/\/localhost:\d+$/,
-  credentials: true,
-}));
+// app.use(cors({
+//   origin: /^http:\/\/localhost:\d+$/,
+//   credentials: true,
+// }));
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  // Add your Vercel URL after deployment
+  'https://your-app.vercel.app',
+]
 
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    if (origin.includes('localhost')) return callback(null, true)
+    if (origin.includes('vercel.app')) return callback(null, true)
+    if (origin.includes('devtunnels.ms')) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    callback(new Error(`CORS blocked: ${origin}`))
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+}))
 // ─── Security Headers ───────────────────────────────────────
 app.use(helmet());
 
