@@ -1,5 +1,4 @@
-import 'dotenv/config';
-import { defineConfig, env } from 'prisma/config';
+import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
@@ -7,6 +6,10 @@ export default defineConfig({
     path: 'prisma/migrations',
   },
   datasource: {
-    url: env('DATABASE_URL'),
+    // Use process.env instead of env() so prisma generate
+    // does not throw when DATABASE_URL is missing at build time.
+    // prisma generate only needs the schema — never the database.
+    // prisma migrate deploy uses the real URL at runtime.
+    url: process.env.DATABASE_URL ?? 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
   },
-});
+})
