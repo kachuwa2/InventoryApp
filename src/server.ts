@@ -14,11 +14,12 @@ const PORT = process.env.PORT || 3000;
 // ─── Start Server ───────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`
-    ╔════════════════════════════════════════╗
-    ║  Inventory Management System Running   ║
-    ╠════════════════════════════════════════╣
-    ║  URL:         http://localhost:${PORT}          
-    ║  Environment: ${process.env.NODE_ENV}
-    ╚════════════════════════════════════════╝
+    ╔═══════════════════════════════════════════╗
+    ║  Inventory Management System Running      ║
+    ╠═══════════════════════════════════════════╣
+    ║  API:   http://localhost:${PORT}          ╣
+    ║  Docs:  http://localhost:${PORT}/api-docs ╣
+    ║  Env:   ${process.env.NODE_ENV}           ╣  
+    ╚═══════════════════════════════════════════╝  
   `);
 });

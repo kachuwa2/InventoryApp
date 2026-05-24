@@ -16,6 +16,8 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 import { rateLimit } from 'express-rate-limit';
 import { errorHandler }     from './middleware/errorHandler';
 import { getIp }            from './utils/request';
@@ -97,6 +99,48 @@ app.use('/api/sales',      salesRoutes);       // Point-of-sale and sales orders
 app.use('/api/reports',    reportsRoutes);     // Business analytics and KPIs
 app.use('/api/users',      usersRoutes);       // User management (admin only)
 app.use('/api/audit-logs', auditLogsRoutes);   // Audit trail (admin only)
+
+// ─── Swagger UI ────────────────────────────────────────────
+// Custom CSS for dark theme matching the app design
+const swaggerUiOptions = {
+  customCss: `
+    .swagger-ui { font-family: Inter, system-ui, sans-serif; }
+    .swagger-ui .topbar { background: #13151C; }
+    .swagger-ui .topbar .download-url-wrapper { display: none; }
+    .swagger-ui .info .title { color: #7C6EF8; }
+    .swagger-ui .scheme-container { background: #13151C; padding: 16px; }
+    .swagger-ui .opblock-tag { font-size: 16px; font-weight: 600; }
+    .swagger-ui .opblock.opblock-get .opblock-summary-method {
+      background: #1D9E75; }
+    .swagger-ui .opblock.opblock-post .opblock-summary-method {
+      background: #4DA8F5; }
+    .swagger-ui .opblock.opblock-put .opblock-summary-method {
+      background: #F5A742; }
+    .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+      background: #F56B6B; }
+    .swagger-ui .btn.authorize { border-color: #7C6EF8; color: #7C6EF8; }
+    .swagger-ui .btn.authorize svg { fill: #7C6EF8; }
+  `,
+  customSiteTitle: 'StockFlow API Docs',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    tryItOutEnabled: true,
+  },
+}
+
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, swaggerUiOptions)
+)
+
+// Serve raw OpenAPI JSON (useful for Postman import)
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json')
+  res.send(swaggerSpec)
+})
 
 // ─── Error Handling Middleware ──────────────────────────────
 // Must be registered last to catch all errors from routes above

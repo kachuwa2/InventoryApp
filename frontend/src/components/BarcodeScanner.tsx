@@ -9,14 +9,22 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const videoRef  = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const reader = new BrowserMultiFormatReader();
-    readerRef.current = reader;
+    const videoElement = videoRef.current;
+    
+    if(!videoElement) {
+      setError('Video element not found. Please try again.');
+      return;
+    }
+    
 
-    reader.decodeFromVideoDevice(undefined, videoRef.current!, (result, err) => {
+    reader.
+    decodeFromVideoDevice(
+      undefined, 
+      videoRef.current!, (result, err) => {
       if (result) {
         onScan(result.getText());
         onClose();
@@ -29,13 +37,17 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     });
 
     return () => {
-      readerRef.current?.reset();
+      const stream = videoElement.srcObject as MediaStream | null;
+
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
     };
   }, [onScan, onClose]);
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-6"
+      className="fixed inset-0 z-60 bg-black/90 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <div

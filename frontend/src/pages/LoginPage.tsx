@@ -64,7 +64,7 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex bg-bg">
 
-      {/* ── Left decorative panel ─────────────────────────── */}
+      {/* ── Left decorative panel──── */}
       <div
         className="hidden lg:flex flex-col justify-between shrink-0 border-r border-border"
         style={{
@@ -109,7 +109,7 @@ export function LoginPage() {
         
       </div>
 
-      {/* ── Right login area ──────────────────────────────── */}
+      {/* ── Right login area ────── */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className={`w-full page-enter ${shake ? 'shake' : ''}`} style={{ maxWidth: 440 }}>
 
