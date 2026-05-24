@@ -49,7 +49,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   // Add your Vercel URL after deployment
-  'https://your-app.vercel.app',
+  'https://web-production-f5a2d.up.railway.app/',
 ]
 
 app.use(cors({
