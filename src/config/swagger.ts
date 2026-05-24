@@ -40,15 +40,17 @@ Click **Authorize** and enter: **Bearer {your_token}**
       },
     },
     servers: [
-      {
-        url: 'http://localhost:3000',
-        description: 'Development server',
-      },
-      {
-        url: process.env.PRODUCTION_URL || 'https://your-app.railway.app',
-        description: 'Production server',
-      },
-    ],
+  {
+    url: process.env.NODE_ENV === 'production'
+      ? process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : 'https://your-railway-url.up.railway.app'
+      : 'http://localhost:3000',
+    description: process.env.NODE_ENV === 'production'
+      ? 'Production server'
+      : 'Development server',
+  },
+],
     components: {
       securitySchemes: {
         bearerAuth: {
