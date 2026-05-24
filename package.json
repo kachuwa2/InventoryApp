@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
-    "build": "tsc",
+    "build": "npx prisma generate --config prisma.config.mjs && tsc",
     "start": "node dist/server.js",
     "seed": "ts-node prisma/seed.ts",
     "test": "jest --runInBand"
