@@ -8,8 +8,8 @@
 import app from './app';
 
 // ─── Server Configuration ───────────────────────────────────
-// Read PORT from environment variables, default to 3000 for local development
-const PORT = process.env.PORT || 3000;
+
+const PORT = process.env.PORT || 8080;
 
 // ─── Start Server ───────────────────────────────────────────
 app.listen(PORT, () => {
@@ -24,17 +24,3 @@ app.listen(PORT, () => {
   `);
 });
 
-// Run seed on first deployment if SEED_ON_START is set
-if (process.env.SEED_ON_START === 'true') {
-  // Use a runtime require with a constructed path so TypeScript won't try
-  // to resolve the module at compile time (avoids rootDir errors).
-  try {
-    const path = require('path')
-    const seedPath = path.join(__dirname, '..', 'prisma', 'seed')
-    // require the seed file at runtime; it should execute on import
-    require(seedPath)
-    console.log('✅ Seed completed')
-  } catch (err) {
-    console.error('Seed error:', err)
-  }
-}
