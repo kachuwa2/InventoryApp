@@ -21,7 +21,7 @@ export async function createPurchase(payload: {
   supplierReference?: string;
   notes?: string;
   expectedAt?: string;
-  items: Array<{ productId: string; quantityOrdered: number; unitCost: string }>;
+  items: Array<{ productId: string; quantityOrdered: number; unitCost: number }>;
 }): Promise<PurchaseOrder> {
   const { data } = await client.post<{ data: PurchaseOrder }>('/purchases', payload);
   return data.data;

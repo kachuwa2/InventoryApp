@@ -149,10 +149,10 @@ export function NewPurchasePage() {
         items: items
           .map((item) => ({
             productId: item.productId,
-            quantityOrdered: item.quantityOrdered,
-            unitCost: String(item.unitCost),
+            quantityOrdered: Number(item.quantityOrdered),
+            unitCost: Number(item.unitCost),
           }))
-          .filter((item) => item.productId && item.quantityOrdered > 0 && Number(item.unitCost) > 0),
+          .filter((item) => item.productId && item.quantityOrdered > 0 && item.unitCost > 0),
       }),
     onSuccess: (po) => {
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
