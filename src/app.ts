@@ -48,7 +48,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  // Add your Vercel URL after deployment
+  'https://inventory-app-2tyc.vercel.app/',
   'https://web-production-f5a2d.up.railway.app/',
 ]
 
