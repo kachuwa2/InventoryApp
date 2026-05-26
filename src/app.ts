@@ -48,7 +48,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://inventory-app-two-alpha-25.vercel.app/',
+  'https://inventory-app-six-drab.vercel.app/',
   'https://web-production-f5a2d.up.railway.app/',
 ]
 
