@@ -6,11 +6,11 @@ const orderItemSchema = z.object({
     .string({ error: 'Product ID is required' }),
 
   quantityOrdered: z
-    .number({ error: 'Quantity is required' })
+    .coerce.number({ error: 'Quantity is required' })
     .min(0.01, 'Quantity must be greater than zero'),
 
   unitCost: z
-    .number({ error: 'Unit cost is required' })
+    .coerce.number({ error: 'Unit cost is required' })
     .min(0.01, 'Unit cost must be greater than zero'),
 });
 

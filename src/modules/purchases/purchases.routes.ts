@@ -201,6 +201,12 @@ router.post('/',
  *         $ref: '#/components/responses/NotFound'
  */
 
+router.put('/:id',
+  authorize(['admin', 'manager']),
+  validate(updatePurchaseOrderSchema),
+  updateOne
+);
+
 // Approve — admin and manager only
 /**
  * @swagger
