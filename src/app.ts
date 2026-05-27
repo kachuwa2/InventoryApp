@@ -39,32 +39,28 @@ dotenv.config();
 // Initialize Express application
 const app = express();
 
-// ─── CORS ───────────────────────────────────────────────────
-// Allow the Vite dev server (any localhost port) to make credentialed requests
-// app.use(cors({
-//   origin: /^http:\/\/localhost:\d+$/,
-//   credentials: true,
-// }));
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'https://inventory-app-six-drab.vercel.app/',
-  'https://web-production-f5a2d.up.railway.app/',
-]
+// Required for Railway (sits behind a reverse proxy) so Express
+// correctly detects HTTPS and secure cookies work.
+app.set('trust proxy', 1);
 
+// ─── CORS ───────────────────────────────────────────────────
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true)
     if (origin.includes('localhost')) return callback(null, true)
     if (origin.includes('vercel.app')) return callback(null, true)
     if (origin.includes('devtunnels.ms')) return callback(null, true)
-    if (allowedOrigins.includes(origin)) return callback(null, true)
+    if (origin.includes('railway.app')) return callback(null, true)
     callback(new Error(`CORS blocked: ${origin}`))
   },
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
+  exposedHeaders: ['Set-Cookie'],
 }))
+
+// Handle preflight requests for all cross-origin routes
+app.options('*', cors())
 // ─── Security Headers ───────────────────────────────────────
 app.use(helmet());
 

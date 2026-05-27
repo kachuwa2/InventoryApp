@@ -180,10 +180,12 @@ export async function refreshAccessToken(token: string) {
 
     if (!user) throw new UnauthorizedError('User no longer active');
 
-    const accessToken = generateAccessToken(user.id, user.role);
-    return { accessToken };
+    const accessToken  = generateAccessToken(user.id, user.role);
+    const refreshToken = generateRefreshToken(user.id);
+    return { accessToken, refreshToken };
 
-  } catch {
+  } catch (err) {
+    if (err instanceof UnauthorizedError) throw err;
     throw new UnauthorizedError('Invalid or expired refresh token');
   }
 }

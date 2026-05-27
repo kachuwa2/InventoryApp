@@ -42,9 +42,10 @@ export async function login(
     // httpOnly cookies — this defeats XSS token theft.
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
     });
 
     res.json({
@@ -93,9 +94,18 @@ export async function refresh(
 
     const result = await authService.refreshAccessToken(token);
 
+    // Rotate the refresh token — issue a fresh cookie on every refresh
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
     res.json({
       success: true,
-      data: result,
+      data: { accessToken: result.accessToken },
     });
   } catch (error) {
     next(error);
@@ -107,7 +117,12 @@ export async function logout(
   res: Response,
   next: NextFunction
 ) {
-  res.clearCookie('refreshToken');
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    path: '/',
+  });
   res.json({ success: true, message: 'Logged out successfully' });
 }
 

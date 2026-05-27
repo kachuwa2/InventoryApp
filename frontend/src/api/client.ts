@@ -5,10 +5,6 @@ let _token: string | null = null;
 export function setToken(token: string | null) { _token = token; }
 export function getToken() { return _token; }
 
-// Use Vite proxy in dev (/api → http://localhost:3000/api)
-// Set VITE_API_URL for production
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
-
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   withCredentials: true,
@@ -29,12 +25,8 @@ client.interceptors.response.use(
       original._retry = true;
       try {
         if (!refreshing) {
-          refreshing = axios
-            .post<{ data: { accessToken: string } }>(
-              `${BASE}/api/auth/refresh`,
-              null,
-              { withCredentials: true }
-            )
+          refreshing = client
+            .post<{ data: { accessToken: string } }>('/auth/refresh', null)
             .then((r) => r.data.data.accessToken)
             .finally(() => { refreshing = null; });
         }
