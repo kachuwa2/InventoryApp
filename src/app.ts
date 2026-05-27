@@ -59,8 +59,12 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie'],
 }))
 
+//Express v5 uses path-to-regexp v8 which no longer accepts the wildcard * as a route pattern. This is an Express v5 breaking change.
+// app.options('*', cors())
+
 // Handle preflight requests for all cross-origin routes
-app.options('*', cors())
+app.options('/{*path}', cors())
+
 // ─── Security Headers ───────────────────────────────────────
 app.use(helmet());
 
