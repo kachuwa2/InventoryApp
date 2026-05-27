@@ -25,3 +25,7 @@ dist-ssr
 claude
 claude*
 CLAUDE.md 
+frontend/.env.local
+frontend/.env.*.local.
+.env.local
+.env.*.local

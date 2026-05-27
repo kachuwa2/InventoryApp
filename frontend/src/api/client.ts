@@ -10,7 +10,7 @@ export function getToken() { return _token; }
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   withCredentials: true,
 });
 

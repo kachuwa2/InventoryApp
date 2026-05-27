@@ -5,11 +5,11 @@ import { Spinner } from './Spinner';
 
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
-const sizes: Record<ModalSize, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
+const maxWidths: Record<ModalSize, number> = {
+  sm: 400,
+  md: 520,
+  lg: 672,
+  xl: 900,
 };
 
 interface ModalProps {
@@ -34,36 +34,69 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', loading, 
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      className="modal-overlay"
       role="dialog"
       aria-modal="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(2px)',
+        }}
         onClick={onClose}
       />
 
       {/* Modal box */}
       <div
-        className={`relative bg-surface border border-border2 rounded-xl shadow-2xl w-full ${sizes[size]} max-h-[90vh] flex flex-col page-enter`}
-        style={{ boxShadow: 'var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.6))' }}
+        className="modal-box page-enter"
+        style={{
+          position: 'relative',
+          background: 'var(--surface)',
+          border: '1px solid var(--border2)',
+          borderRadius: 12,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+          width: '100%',
+          maxWidth: maxWidths[size],
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
-          <h2 className="text-[16px] font-semibold text-text">{title}</h2>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '20px 24px', borderBottom: '1px solid var(--border)', flexShrink: 0,
+        }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>{title}</h2>
           <button
             onClick={onClose}
-            className="text-text3 hover:text-text transition-colors p-1.5 rounded-lg hover:bg-surface2"
+            style={{
+              color: 'var(--text3)', background: 'none', border: 'none',
+              cursor: 'pointer', padding: 6, borderRadius: 8, display: 'flex',
+            }}
           >
-            <X className="w-4 h-4" />
+            <X size={16} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-5">
+        <div style={{ overflowY: 'auto', flex: 1, padding: '20px 24px' }}>
           {loading ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
+              <Spinner />
+            </div>
           ) : (
             children
           )}
@@ -71,7 +104,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', loading, 
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-border shrink-0">
+          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
             {footer}
           </div>
         )}

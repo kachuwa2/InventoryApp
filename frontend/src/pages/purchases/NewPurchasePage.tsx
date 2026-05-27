@@ -328,6 +328,7 @@ export function NewPurchasePage() {
               </div>
             ) : (
               <>
+                <div className="table-scroll-wrap">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
@@ -397,6 +398,7 @@ export function NewPurchasePage() {
                     })}
                   </tbody>
                 </table>
+                </div>
 
                 {/* Order summary card */}
                 <div className="mt-4 bg-surface2 border border-border rounded-xl px-5 py-4 flex items-center justify-between">

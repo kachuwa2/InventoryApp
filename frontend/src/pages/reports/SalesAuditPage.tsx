@@ -177,6 +177,7 @@ export function SalesAuditPage() {
             message="Adjust the date range and click Apply."
           />
         ) : (
+          <div className="table-scroll-wrap">
           <table className="w-full border-collapse">
             <thead className="sticky top-0 z-10">
               <tr className="bg-surface2 border-b border-border">
@@ -221,6 +222,7 @@ export function SalesAuditPage() {
               </tr>
             </tfoot>
           </table>
+          </div>
         )}
       </div>
     </div>

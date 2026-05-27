@@ -303,6 +303,7 @@ export function PurchaseDetailPage() {
           {/* Line items */}
           <div className="bg-surface border border-border rounded-xl p-5">
             <h2 className="text-[14px] font-semibold text-text mb-4">Line Items</h2>
+            <div className="table-scroll-wrap">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
@@ -335,6 +336,7 @@ export function PurchaseDetailPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
 
@@ -401,6 +403,7 @@ export function PurchaseDetailPage() {
         }
       >
         <div className="flex flex-col gap-4">
+          <div className="table-scroll-wrap">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
@@ -432,6 +435,7 @@ export function PurchaseDetailPage() {
               ))}
             </tbody>
           </table>
+          </div>
 
           <div>
             <label className="block text-[11px] font-medium text-text2 uppercase tracking-wide mb-1.5">Receipt Notes (optional)</label>
@@ -522,7 +526,7 @@ export function PurchaseDetailPage() {
               </button>
             </div>
 
-            <div className="border border-border rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden table-scroll-wrap">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-surface2">

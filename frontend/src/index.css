@@ -185,6 +185,175 @@ input, button, select, textarea {
   animation: scan-line 1.5s linear infinite;
 }
 
+/* ─── Responsive breakpoints ─────────────────── */
+:root {
+  --breakpoint-mobile: 767px;
+  --breakpoint-tablet: 1023px;
+  --breakpoint-desktop: 1024px;
+}
+
+/* ─── Touch improvements ──────────────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+button, .nav-item, [role="tab"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button:active, .nav-item:active {
+  opacity: 0.75;
+}
+
+/* Minimum touch target */
+.icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Sidebar responsive ──────────────────────── */
+.hamburger-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex !important;
+  }
+}
+
+/* Nav tooltip hover */
+div:hover > .nav-tooltip {
+  opacity: 1 !important;
+}
+
+/* ─── Main layout responsive ──────────────────── */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0 !important;
+  }
+  .topbar {
+    padding-left: 56px;
+  }
+  .topbar-breadcrumb {
+    display: none;
+  }
+  .topbar-time {
+    display: none;
+  }
+  .topbar-search {
+    display: none;
+  }
+  .topbar-title-mobile {
+    display: block !important;
+  }
+}
+
+.topbar-title-mobile {
+  display: none;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+}
+
+/* ─── Mobile-hide table columns ──────────────── */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  table td, table th {
+    padding: 12px 10px;
+  }
+  table tr {
+    min-height: 48px;
+  }
+}
+
+/* ─── Responsive tables ───────────────────────── */
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll-wrap table {
+  min-width: 580px;
+}
+
+/* ─── Modals on mobile ────────────────────────── */
+@media (max-width: 768px) {
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    animation: slideUp 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ─── Form grids on mobile ────────────────────── */
+@media (max-width: 768px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+  input, select, textarea {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+  button {
+    min-height: 40px;
+  }
+}
+
+/* ─── Charts on mobile ────────────────────────── */
+@media (max-width: 768px) {
+  .chart-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chart-container > * {
+    min-width: 320px;
+  }
+  .charts-row {
+    flex-direction: column !important;
+  }
+  .charts-row > * {
+    width: 100% !important;
+  }
+}
+
+/* ─── POS mobile tab bar ──────────────────────── */
+.pos-tab-bar {
+  display: none;
+}
+@media (max-width: 768px) {
+  .pos-desktop-layout {
+    display: none !important;
+  }
+  .pos-mobile-layout {
+    display: flex !important;
+  }
+  .pos-tab-bar {
+    display: flex;
+  }
+}
+.pos-mobile-layout {
+  display: none;
+}
+
 /* ─── Print isolation ─────────────────────────── */
 @media print {
   body * { visibility: hidden !important; }

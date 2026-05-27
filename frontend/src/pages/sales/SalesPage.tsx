@@ -199,7 +199,7 @@ export function SalesPage() {
                 {/* Line items */}
                 <div>
                   <p className="text-text3 text-[11px] uppercase tracking-wider mb-3">Items</p>
-                  <div className="bg-surface2 rounded-xl overflow-hidden">
+                  <div className="bg-surface2 rounded-xl overflow-hidden table-scroll-wrap">
                     <table className="w-full border-collapse text-[12px]">
                       <thead>
                         <tr className="border-b border-border">

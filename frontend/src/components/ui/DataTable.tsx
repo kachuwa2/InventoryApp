@@ -39,8 +39,8 @@ export function DataTable<T>({
   const cellPy = compact ? 'py-2.5' : 'py-3.5';
 
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full border-collapse">
+    <div className="w-full overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <table className="w-full border-collapse" style={{ minWidth: 560 }}>
         <thead className="sticky top-0 z-10">
           <tr className="bg-surface2 border-b border-border">
             {columns.map((col) => (

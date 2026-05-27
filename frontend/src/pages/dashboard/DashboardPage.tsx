@@ -105,14 +105,20 @@ export function DashboardPage() {
   const recentActivity = (dashboard?.recentActivity ?? []).slice(0, 8);
 
   return (
-    <div className="p-6 space-y-6 min-h-screen bg-bg">
+    <div style={{ paddingBottom: 24 }}>
       <PageHeader
         title="Dashboard"
         subtitle="Kitchen utensils inventory overview"
       />
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: 16,
+        marginBottom: 20,
+        marginTop: 20,
+      }}>
         <StatCard
           label="Today Revenue"
           value={dashLoading ? <Spinner size="sm" /> : `Rs. ${fmt(dashboard?.today.revenue ?? 0)}`}
@@ -144,9 +150,9 @@ export function DashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
         {/* 7-day revenue area chart */}
-        <div className="xl:col-span-2 bg-surface border border-border rounded-xl p-5">
+        <div className="chart-container" style={{ gridColumn: 'span 2', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
           <h3 className="text-[13px] font-semibold text-text mb-4">Revenue — Last 7 Days</h3>
           {salesLoading ? (
             <div className="flex items-center justify-center h-48"><Spinner /></div>
@@ -194,7 +200,7 @@ export function DashboardPage() {
         </div>
 
         {/* Sales mix donut */}
-        <div className="bg-surface border border-border rounded-xl p-5 flex flex-col">
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column' }}>
           <h3 className="text-[13px] font-semibold text-text mb-4">Sales Mix — Today</h3>
           {dashLoading ? (
             <div className="flex items-center justify-center flex-1"><Spinner /></div>
@@ -243,9 +249,9 @@ export function DashboardPage() {
       </div>
 
       {/* Low stock + Recent activity */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
         {/* Low stock alerts */}
-        <div className="xl:col-span-2 bg-surface border border-border rounded-xl overflow-hidden">
+        <div style={{ gridColumn: 'span 2', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <h3 className="text-[13px] font-semibold text-text flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-warning" />
@@ -263,7 +269,7 @@ export function DashboardPage() {
               <p className="text-[13px]">All products are adequately stocked</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="table-scroll-wrap">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/50">
@@ -306,7 +312,7 @@ export function DashboardPage() {
         </div>
 
         {/* Recent activity */}
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
           <div className="px-5 py-4 border-b border-border">
             <h3 className="text-[13px] font-semibold text-text">Recent Activity</h3>
           </div>

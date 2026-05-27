@@ -164,7 +164,7 @@ function PLTab() {
           )}
 
           {/* Product breakdown table */}
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="bg-surface border border-border rounded-xl overflow-hidden table-scroll-wrap">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
@@ -263,7 +263,7 @@ function TopProductsTab() {
           </div>
 
           {/* Table */}
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="bg-surface border border-border rounded-xl overflow-hidden table-scroll-wrap">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
@@ -325,7 +325,7 @@ function SlowMovingTab() {
       {isLoading ? (
         <div className="flex justify-center py-12"><Spinner /></div>
       ) : (
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+        <div className="bg-surface border border-border rounded-xl overflow-hidden table-scroll-wrap">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">

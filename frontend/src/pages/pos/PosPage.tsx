@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Barcode, X, Minus, Plus, Printer, ShoppingCart, User, ChevronRight, CheckCircle, Camera,
+  Barcode, X, Minus, Plus, Printer, ShoppingCart, User, ChevronRight, CheckCircle, Camera, CreditCard,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { Modal } from '../../components/ui/Modal';
@@ -53,6 +53,8 @@ export function PosPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderDiscount, setOrderDiscount] = useState('0');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  const [posTab, setPosTab] = useState<'cart' | 'summary'>('cart');
 
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
@@ -243,11 +245,15 @@ export function PosPage() {
   const cartSnapshot = [...cart];
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col">
-      <header className="bg-surface border-b border-border px-6 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <ShoppingCart className="w-5 h-5 text-accent" />
-          <span className="text-text font-semibold text-[16px]">POS Terminal</span>
+    <div style={{ minHeight: '100%', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      <header style={{
+        background: 'var(--surface)', borderBottom: '1px solid var(--border)',
+        padding: '12px 20px', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ShoppingCart size={18} style={{ color: 'var(--accent)' }} />
+          <span style={{ color: 'var(--text)', fontWeight: 600, fontSize: 15 }}>POS Terminal</span>
         </div>
         <Badge
           label={saleType === 'retail' ? 'Retail' : 'Wholesale'}
@@ -255,9 +261,37 @@ export function PosPage() {
         />
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Mobile tab bar */}
+      <div className="pos-tab-bar" style={{
+        borderBottom: '1px solid var(--border)', background: 'var(--surface)',
+        flexShrink: 0,
+      }}>
+        {([
+          { key: 'cart',    label: `Cart${itemCount > 0 ? ` (${itemCount})` : ''}`, icon: <ShoppingCart size={14} /> },
+          { key: 'summary', label: 'Summary', icon: <CreditCard size={14} /> },
+        ] as { key: 'cart' | 'summary'; label: string; icon: React.ReactNode }[]).map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setPosTab(tab.key)}
+            style={{
+              flex: 1, padding: '11px 0', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 500,
+              background: 'none', border: 'none', cursor: 'pointer',
+              borderBottom: posTab === tab.key ? '2px solid var(--accent)' : '2px solid transparent',
+              color: posTab === tab.key ? 'var(--accent)' : 'var(--text2)',
+              transition: 'all 150ms',
+            }}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── Desktop layout ─────────────────────────── */}
+      <div className="pos-desktop-layout" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* LEFT */}
-        <div className="flex-1 flex flex-col gap-4 p-5 overflow-y-auto">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, padding: 20, overflowY: 'auto' }}>
           {/* Sale type toggle */}
           <div className="flex border border-border rounded-lg overflow-hidden w-fit">
             {(['retail', 'wholesale'] as SaleType[]).map((t) => (
@@ -377,7 +411,7 @@ export function PosPage() {
               </p>
             </div>
           ) : (
-            <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="bg-surface border border-border rounded-xl overflow-hidden table-scroll-wrap">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b border-border">
@@ -529,6 +563,280 @@ export function PosPage() {
             Void / Clear Cart
           </button>
         </div>
+      </div>
+
+      {/* ─── Mobile layout ──────────────────────────── */}
+      <div className="pos-mobile-layout" style={{ flex: 1, flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* Cart tab */}
+        {posTab === 'cart' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 16, gap: 14, overflowY: 'auto' }}>
+            {/* Sale type toggle */}
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              {(['retail', 'wholesale'] as SaleType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setSaleType(t);
+                    setCart((prev) =>
+                      prev.map((item) => {
+                        const p = products.find((pr) => pr.id === item.productId);
+                        return p ? { ...item, unitPrice: getUnitPrice(p, t) } : item;
+                      })
+                    );
+                  }}
+                  style={{
+                    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500,
+                    textTransform: 'capitalize', border: 'none', cursor: 'pointer',
+                    background: saleType === t ? 'var(--accent)' : 'var(--surface2)',
+                    color: saleType === t ? 'white' : 'var(--text2)',
+                    transition: 'all 150ms',
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Customer picker */}
+            <button
+              onClick={() => setShowCustomerPicker(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                borderRadius: 12, border: selectedCustomer ? '1px solid var(--border)' : '1px dashed var(--border)',
+                background: selectedCustomer ? 'var(--surface2)' : 'transparent',
+                cursor: 'pointer', width: '100%', textAlign: 'left',
+              }}
+            >
+              <User size={16} style={{ color: 'var(--text3)', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                {selectedCustomer ? (
+                  <span style={{ color: 'var(--text)', fontSize: 13, fontWeight: 500 }}>{selectedCustomer.name}</span>
+                ) : (
+                  <span style={{ color: 'var(--text3)', fontSize: 13 }}>Select Customer</span>
+                )}
+              </div>
+              <ChevronRight size={14} style={{ color: 'var(--text3)' }} />
+            </button>
+
+            {/* Barcode input */}
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  ref={barcodeRef}
+                  type="text"
+                  value={barcodeInput}
+                  onChange={(e) => handleBarcodeChange(e.target.value)}
+                  onKeyDown={handleBarcodeKeyDown}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  placeholder="Scan barcode or search…"
+                  style={{
+                    flex: 1, background: 'var(--surface)', border: `1px solid ${barcodeFlash ? 'var(--red)' : 'var(--border)'}`,
+                    borderRadius: 12, padding: '0 16px', height: 52, fontSize: 16,
+                    color: 'var(--text)', outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => setShowScanner(true)}
+                  style={{
+                    width: 52, height: 52, background: 'var(--surface)', border: '1px solid var(--border)',
+                    borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--text3)', cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <Camera size={20} />
+                </button>
+              </div>
+              {barcodeError && <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 6 }}>{barcodeError}</p>}
+              {showSuggestions && suggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 30, overflow: 'hidden',
+                }}>
+                  {suggestions.map((p) => {
+                    const price = getUnitPrice(p, saleType);
+                    return (
+                      <button
+                        key={p.id}
+                        onMouseDown={() => addToCart(p)}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer',
+                          borderBottom: '1px solid var(--border)',
+                        }}
+                      >
+                        <div style={{ textAlign: 'left' }}>
+                          <p style={{ color: 'var(--text)', fontSize: 13, fontWeight: 500 }}>{p.name}</p>
+                          <p style={{ color: 'var(--text3)', fontSize: 11, fontFamily: 'monospace' }}>{p.sku}</p>
+                        </div>
+                        <span style={{ color: 'var(--green)', fontSize: 13, fontWeight: 600 }}>Rs. {fmt(price)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Cart items — mobile card list */}
+            {cart.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
+                <Barcode size={48} style={{ color: 'var(--text3)', opacity: 0.3, marginBottom: 12 }} />
+                <p style={{ color: 'var(--text2)', fontSize: 14 }}>Scan a product to begin</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {cart.map((item) => (
+                  <div key={item.productId} style={{
+                    background: 'var(--surface)', border: '1px solid var(--border)',
+                    borderRadius: 12, padding: '12px 14px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                        <p style={{ color: 'var(--text3)', fontSize: 11, fontFamily: 'monospace' }}>{item.sku}</p>
+                      </div>
+                      <button onClick={() => removeItem(item.productId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', padding: '0 0 0 8px', flexShrink: 0 }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button onClick={() => changeQty(item.productId, -1)} style={{ width: 30, height: 30, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text2)' }}>
+                          <Minus size={12} />
+                        </button>
+                        <span style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600, minWidth: 24, textAlign: 'center' }}>{item.quantity}</span>
+                        <button onClick={() => changeQty(item.productId, +1)} style={{ width: 30, height: 30, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text2)' }}>
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                      <span style={{ color: 'var(--text)', fontSize: 14, fontWeight: 700 }}>Rs. {fmt(lineTotal(item))}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Summary tab */}
+        {posTab === 'summary' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 16, gap: 14, overflowY: 'auto' }}>
+            {/* Customer card */}
+            <div style={{
+              background: selectedCustomer ? 'var(--surface)' : 'var(--surface2)',
+              border: `1px ${selectedCustomer ? 'solid' : 'dashed'} var(--border)`,
+              borderRadius: 12, padding: 16,
+            }}>
+              <p style={{ color: 'var(--text3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Customer</p>
+              {selectedCustomer ? (
+                <>
+                  <p style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>{selectedCustomer.name}</p>
+                  {selectedCustomer.phone && <p style={{ color: 'var(--text2)', fontSize: 12, marginTop: 2 }}>{selectedCustomer.phone}</p>}
+                  <div style={{ marginTop: 8 }}>
+                    <Badge label={selectedCustomer.type} variant={selectedCustomer.type === 'wholesale' ? 'info' : 'success'} />
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => { setShowCustomerPicker(true); setPosTab('cart'); }}
+                  style={{ color: 'var(--accent)', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  + Select customer
+                </button>
+              )}
+            </div>
+
+            {/* Sale type */}
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              {(['retail', 'wholesale'] as SaleType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setSaleType(t);
+                    setCart((prev) =>
+                      prev.map((item) => {
+                        const p = products.find((pr) => pr.id === item.productId);
+                        return p ? { ...item, unitPrice: getUnitPrice(p, t) } : item;
+                      })
+                    );
+                  }}
+                  style={{
+                    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500,
+                    textTransform: 'capitalize', border: 'none', cursor: 'pointer',
+                    background: saleType === t ? 'var(--accent)' : 'var(--surface2)',
+                    color: saleType === t ? 'white' : 'var(--text2)',
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Order totals */}
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <p style={{ color: 'var(--text3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Order Summary</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: 'var(--text2)' }}>Items</span>
+                <span style={{ color: 'var(--text)', fontWeight: 500 }}>{itemCount}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: 'var(--text2)' }}>Subtotal</span>
+                <span style={{ color: 'var(--text)' }}>Rs. {fmt(subtotal)}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ color: 'var(--text2)', fontSize: 13, flexShrink: 0 }}>Discount %</label>
+                <input
+                  type="number" min="0" max="100" value={orderDiscount}
+                  onChange={(e) => setOrderDiscount(e.target.value)}
+                  style={{
+                    flex: 1, background: 'var(--surface2)', border: '1px solid var(--border)',
+                    borderRadius: 8, padding: '6px 10px', fontSize: 13, color: 'var(--text)',
+                    textAlign: 'center', outline: 'none',
+                  }}
+                />
+              </div>
+              {Number(orderDiscount) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <span style={{ color: 'var(--text2)' }}>Discount</span>
+                  <span style={{ color: 'var(--red)' }}>-Rs. {fmt(orderDiscountAmt)}</span>
+                </div>
+              )}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ color: 'var(--text2)', fontSize: 13 }}>Total</span>
+                <span style={{ color: 'var(--green)', fontSize: 26, fontWeight: 700 }}>Rs. {fmt(total)}</span>
+              </div>
+            </div>
+
+            {/* Process payment button */}
+            <button
+              onClick={() => setShowPaymentConfirm(true)}
+              disabled={cart.length === 0}
+              style={{
+                width: '100%', height: 56, background: 'var(--green)',
+                border: 'none', borderRadius: 14, color: 'white',
+                fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                opacity: cart.length === 0 ? 0.4 : 1,
+                transition: 'opacity 150ms',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <CreditCard size={18} />
+              Process Payment
+            </button>
+            <button
+              onClick={() => { setCart([]); setOrderDiscount('0'); }}
+              disabled={cart.length === 0}
+              style={{
+                width: '100%', background: 'none', border: 'none', color: 'var(--text3)',
+                fontSize: 13, cursor: 'pointer', opacity: cart.length === 0 ? 0.3 : 1,
+              }}
+            >
+              Void / Clear Cart
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Customer Picker Modal */}

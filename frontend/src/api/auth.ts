@@ -35,7 +35,7 @@ export async function logout(): Promise<void> {
 
 export async function getSetupStatus(): Promise<{ hasUsers: boolean }> {
   const { data } = await axios.get<{ data: { hasUsers: boolean } }>(
-    `${BASE}/api/auth/setup-status`
+    `${BASE}/auth/setup-status`
   );
   return data.data;
 }
