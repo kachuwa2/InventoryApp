@@ -32,7 +32,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Catalog',
     items: [
-      { path: '/products',   label: 'Products',   icon: <Package size={18} />, roles: ['admin', 'manager', 'cashier', 'warehouse', 'viewer'] },
+      { path: '/products',   label: 'Products',   icon: <Package size={18} />, roles: ['admin', 'manager', 'cashier', 'viewer'] },
       { path: '/categories', label: 'Categories', icon: <Tag size={18} />,     roles: ['admin', 'manager'] },
       { path: '/suppliers',  label: 'Suppliers',  icon: <Truck size={18} />,   roles: ['admin', 'manager'] },
     ],
@@ -48,13 +48,13 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Sales',
     items: [
       { path: '/pos',   label: 'POS Checkout',  icon: <ShoppingCart size={18} />, roles: ['admin', 'manager', 'cashier'] },
-      { path: '/sales', label: 'Sales History', icon: <Receipt size={18} />,      roles: ['admin', 'manager', 'cashier', 'warehouse', 'viewer'] },
+      { path: '/sales', label: 'Sales History', icon: <Receipt size={18} />,      roles: ['admin', 'manager', 'cashier', 'viewer'] },
     ],
   },
   {
     label: 'Customers',
     items: [
-      { path: '/customers', label: 'Customers', icon: <Users size={18} />, roles: ['admin', 'manager', 'cashier', 'warehouse', 'viewer'] },
+      { path: '/customers', label: 'Customers', icon: <Users size={18} />, roles: ['admin', 'manager', 'cashier', 'viewer'] },
     ],
   },
   {

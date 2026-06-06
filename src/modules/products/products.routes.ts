@@ -328,6 +328,16 @@ router.post('/',
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
+
+
+router.put(
+     '/:id',
+     authenticate,
+     authorize(['admin', 'manager']),
+     validate(updateProductSchema),
+     updateOne
+   );
+
 router.put('/:id/price',
   authorize(['admin', 'manager']),
   validate(updatePriceSchema),
@@ -362,5 +372,11 @@ router.put('/:id/price',
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-
+  router.delete(
+     '/:id',
+     authenticate,
+     authorize(['admin', 'manager']),
+     validate(idParamSchema),
+     removeOne
+   )
 export default router;

@@ -90,10 +90,16 @@ function AppWithAuth() {
         <Route path="/login"    element={<LoginPage />} />
         <Route path="/register" element={<RegisterRoute />} />
 
-        {/* POS roles: admin, manager, cashier */}
+        {/* POS: admin, manager, cashier */}
         <Route element={<ProtectedRoute roles={['admin', 'manager', 'cashier']} />}>
           <Route element={<AppLayout />}>
-            <Route path="/pos"       element={<PosPage />} />
+            <Route path="/pos" element={<PosPage />} />
+          </Route>
+        </Route>
+
+        {/* Catalog & Sales: admin, manager, cashier, viewer */}
+        <Route element={<ProtectedRoute roles={['admin', 'manager', 'cashier', 'viewer']} />}>
+          <Route element={<AppLayout />}>
             <Route path="/products"  element={<ProductsPage />} />
             <Route path="/sales"     element={<SalesPage />} />
             <Route path="/customers" element={<CustomersPage />} />

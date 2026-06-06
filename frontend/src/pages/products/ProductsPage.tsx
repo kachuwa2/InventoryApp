@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  Plus, Edit2, Trash2, DollarSign, X, Package, Tag, ChevronRight,
+  Plus, Edit2, X, Package, Tag, ChevronRight,
 } from 'lucide-react';
 import Barcoder from 'react-barcode';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -12,7 +12,6 @@ import { FilterBar } from '../../components/ui/FilterBar';
 import { DataTable } from '../../components/ui/DataTable';
 import type { Column } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { fmt } from '../../utils/cn';
@@ -59,25 +58,8 @@ const editProductSchema = z.object({
   supplierId: z.string().min(1, 'Supplier is required'),
 });
 
-const priceSchema = z.object({
-  costPrice: z.string().min(1, 'Required'),
-  retailPrice: z.string().min(1, 'Required'),
-  wholesalePrice: z.string().min(1, 'Required'),
-  note: z.string().optional(),
-}).refine(
-  (d) => Number(d.retailPrice) > Number(d.costPrice),
-  { message: 'Retail price must exceed cost', path: ['retailPrice'] }
-).refine(
-  (d) => Number(d.wholesalePrice) > Number(d.costPrice),
-  { message: 'Wholesale price must exceed cost', path: ['wholesalePrice'] }
-).refine(
-  (d) => Number(d.wholesalePrice) <= Number(d.retailPrice),
-  { message: 'Wholesale price must not exceed retail', path: ['wholesalePrice'] }
-);
-
 type AddProductForm = z.infer<typeof addProductSchema>;
 type EditProductForm = z.infer<typeof editProductSchema>;
-type PriceForm = z.infer<typeof priceSchema>;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -128,12 +110,10 @@ const inputCls =
 interface PanelProps {
   product: Product;
   onEdit: () => void;
-  onPrice: () => void;
-  onDelete: () => void;
   onClose: () => void;
   isCashier?: boolean;
 }
-function ProductPanel({ product, onEdit, onPrice, onDelete, onClose, isCashier }: PanelProps) {
+function ProductPanel({ product, onEdit, onClose, isCashier }: PanelProps) {
   const price = getLatestPrice(product);
   const margin = price ? calcMargin(price.costPrice, price.retailPrice) : 0;
   const stock = product.currentStock ?? 0;
@@ -300,7 +280,7 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose, isCashier }
         </div>
       </div>
 
-      {/* Actions — hide from cashier */}
+      {/* Edit action — hide from cashier */}
       {!isCashier && (
         <div className="px-5 py-4 border-t border-border space-y-2">
           <button
@@ -308,18 +288,6 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose, isCashier }
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg text-[13px] font-medium transition-colors"
           >
             <Edit2 className="w-3.5 h-3.5" /> Edit Product
-          </button>
-          <button
-            onClick={onPrice}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-surface2 hover:bg-border text-text border border-border rounded-lg text-[13px] font-medium transition-colors"
-          >
-            <DollarSign className="w-3.5 h-3.5" /> Set New Price
-          </button>
-          <button
-            onClick={onDelete}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-danger/10 hover:bg-danger/20 text-danger rounded-lg text-[13px] font-medium transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" /> Delete
           </button>
         </div>
       )}
@@ -340,8 +308,6 @@ export function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showPriceModal, setShowPriceModal] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Queries
   const { data: products = [], isLoading: prodLoading } = useQuery({
@@ -410,34 +376,9 @@ export function ProductsPage() {
     onError: () => toast('error', 'Failed to update product'),
   });
 
-  const priceMut = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof productsApi.updateProductPrice>[1] }) =>
-      productsApi.updateProductPrice(id, payload),
-    onSuccess: (_, { id }) => {
-      toast('success', 'Price updated');
-      setShowPriceModal(false);
-      qc.invalidateQueries({ queryKey: ['products'] });
-      qc.invalidateQueries({ queryKey: ['products', id] });
-      qc.invalidateQueries({ queryKey: ['inventory'] });
-    },
-    onError: () => toast('error', 'Failed to update price'),
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => productsApi.deleteProduct(id),
-    onSuccess: () => {
-      toast('success', 'Product deleted');
-      setDeleteId(null);
-      if (selectedProduct?.id === deleteId) setSelectedProduct(null);
-      invalidate();
-    },
-    onError: () => toast('error', 'Failed to delete product'),
-  });
-
   // Forms
   const addForm = useForm<AddProductForm>({ resolver: zodResolver(addProductSchema), defaultValues: { reorderPoint: 0 } });
   const editForm = useForm<EditProductForm>({ resolver: zodResolver(editProductSchema), defaultValues: { reorderPoint: 0 } });
-  const priceForm = useForm<PriceForm>({ resolver: zodResolver(priceSchema) });
 
   function openEdit(p: Product) {
     setSelectedProduct(p);
@@ -450,18 +391,6 @@ export function ProductsPage() {
       supplierId: p.supplierId,
     });
     setShowEditModal(true);
-  }
-
-  function openPrice(p: Product) {
-    setSelectedProduct(p);
-    const ph = getLatestPrice(p);
-    priceForm.reset({
-      costPrice: ph?.costPrice ?? '',
-      retailPrice: ph?.retailPrice ?? '',
-      wholesalePrice: ph?.wholesalePrice ?? '',
-      note: '',
-    });
-    setShowPriceModal(true);
   }
 
   function handleRowClick(p: Product) {
@@ -551,20 +480,6 @@ export function ProductsPage() {
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
-          <button
-            onClick={() => openPrice(p)}
-            className="p-1.5 text-text3 hover:text-success hover:bg-success/10 rounded-lg transition-colors"
-            title="Set price"
-          >
-            <DollarSign className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setDeleteId(p.id)}
-            className="p-1.5 text-text3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
-            title="Delete product"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
           <ChevronRight className="w-3.5 h-3.5 text-text3 ml-1" />
         </div>
       ),
@@ -579,7 +494,7 @@ export function ProductsPage() {
     <div className={`p-6 min-h-screen bg-bg transition-all ${selectedProduct ? 'mr-85' : ''}`}>
       <PageHeader
         title="Products"
-        subtitle="Manage your product catalog"
+        subtitle="Browse the product catalog"
         count={filtered.length}
         actions={
           <button
@@ -636,8 +551,6 @@ export function ProductsPage() {
         <ProductPanel
           product={selectedProduct}
           onEdit={() => openEdit(selectedProduct)}
-          onPrice={() => openPrice(selectedProduct)}
-          onDelete={() => setDeleteId(selectedProduct.id)}
           onClose={() => setSelectedProduct(null)}
           isCashier={isCashier}
         />
@@ -810,91 +723,7 @@ export function ProductsPage() {
             </select>
           </Field>
         </div>
-        <p className="text-[11px] text-text3 mt-4 flex items-center gap-1.5">
-          <DollarSign className="w-3 h-3" /> To change prices, use the "Set New Price" action.
-        </p>
       </Modal>
-
-      {/* Set New Price Modal */}
-      <Modal
-        isOpen={showPriceModal}
-        onClose={() => setShowPriceModal(false)}
-        title={`Set Price — ${selectedProduct?.name ?? ''}`}
-        size="md"
-        footer={
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setShowPriceModal(false)}
-              className="px-4 py-2 bg-surface2 border border-border text-text rounded-lg text-[13px] font-medium hover:bg-border transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={priceForm.handleSubmit((d) => {
-                if (!selectedProduct) return;
-                priceMut.mutate({
-                  id: selectedProduct.id,
-                  payload: {
-                    costPrice: d.costPrice,
-                    retailPrice: d.retailPrice,
-                    wholesalePrice: d.wholesalePrice,
-                    note: d.note || undefined,
-                  },
-                });
-              })}
-              disabled={priceMut.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent/90 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
-            >
-              {priceMut.isPending && <Spinner size="sm" />}
-              Update Price
-            </button>
-          </div>
-        }
-      >
-        {selectedProduct && (() => {
-          const ph = getLatestPrice(selectedProduct);
-          return (
-            <div className="space-y-4">
-              {ph && (
-                <div className="bg-surface2 rounded-lg p-4 text-[12px] text-text2 space-y-1">
-                  <p className="font-medium text-text3 uppercase tracking-wider text-[10px] mb-2">Current Prices</p>
-                  <div className="flex justify-between"><span>Cost</span><span className="font-mono">Rs. {fmt(ph.costPrice)}</span></div>
-                  <div className="flex justify-between"><span>Retail</span><span className="font-mono">Rs. {fmt(ph.retailPrice)}</span></div>
-                  <div className="flex justify-between"><span>Wholesale</span><span className="font-mono">Rs. {fmt(ph.wholesalePrice)}</span></div>
-                </div>
-              )}
-              <div className="grid grid-cols-1 gap-3">
-                <Field label="New Cost Price (Rs.) *" error={priceForm.formState.errors.costPrice?.message}>
-                  <input {...priceForm.register('costPrice')} type="number" step="0.01" min={0} className={inputCls} />
-                </Field>
-                <Field label="New Retail Price (Rs.) *" error={priceForm.formState.errors.retailPrice?.message}>
-                  <input {...priceForm.register('retailPrice')} type="number" step="0.01" min={0} className={inputCls} />
-                </Field>
-                <Field label="New Wholesale Price (Rs.) *" error={priceForm.formState.errors.wholesalePrice?.message}>
-                  <input {...priceForm.register('wholesalePrice')} type="number" step="0.01" min={0} className={inputCls} />
-                </Field>
-                <Field label="Note" error={priceForm.formState.errors.note?.message}>
-                  <input {...priceForm.register('note')} className={inputCls} placeholder="Reason for price change" />
-                </Field>
-              </div>
-            </div>
-          );
-        })()}
-      </Modal>
-
-      {/* Delete Confirm */}
-      <ConfirmDialog
-        isOpen={deleteId !== null}
-        onClose={() => setDeleteId(null)}
-        onConfirm={() => { if (deleteId) deleteMut.mutate(deleteId); }}
-        title="Delete Product"
-        message={`Delete "${selectedProduct?.name || 'Unknown product'}"?\nThis product will be soft-deleted and removed from the catalog.\nThis action cannot be undone.`}
-        confirmLabel="Delete Product"
-        loading={deleteMut.isPending}
-        danger
-      />
     </div>
   );
 }

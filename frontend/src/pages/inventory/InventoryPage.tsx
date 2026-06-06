@@ -10,6 +10,7 @@ import {
 import {
   Layers, AlertTriangle, TrendingUp, Activity,
   ArrowDownCircle, ArrowUpCircle, ShoppingCart,
+  ArrowUpDown, DollarSign, Trash2,
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
@@ -19,11 +20,14 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorMessage } from '../../components/ui/ErrorMessage';
 import { Spinner } from '../../components/ui/Spinner';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { fmt, fmtDateTime } from '../../utils/cn';
 import { useToast } from '../../contexts/ToastContext';
 import * as inventoryApi from '../../api/inventory';
 import * as categoriesApi from '../../api/categories';
 import * as suppliersApi from '../../api/suppliers';
+import * as productsApi from '../../api/products';
+import { useAuth } from '../../context/AuthContext';
 import { SearchInput } from '../../components/ui/SearchInput';
 import type { InventoryProduct, StockMovement, MovementType, Category, Supplier } from '../../api/types';
 
@@ -48,6 +52,24 @@ const adjustSchema = z.object({
   unitCost: z.string().optional(),
   notes: z.string().min(5, { error: 'Notes must be at least 5 characters' }),
 });
+
+const priceSchema = z.object({
+  costPrice: z.string().min(1, 'Required'),
+  retailPrice: z.string().min(1, 'Required'),
+  wholesalePrice: z.string().min(1, 'Required'),
+  note: z.string().optional(),
+}).refine(
+  (d) => Number(d.retailPrice) > Number(d.costPrice),
+  { message: 'Retail price must exceed cost', path: ['retailPrice'] }
+).refine(
+  (d) => Number(d.wholesalePrice) > Number(d.costPrice),
+  { message: 'Wholesale price must exceed cost', path: ['wholesalePrice'] }
+).refine(
+  (d) => Number(d.wholesalePrice) <= Number(d.retailPrice),
+  { message: 'Wholesale price must not exceed retail', path: ['wholesalePrice'] }
+);
+
+type PriceForm = z.infer<typeof priceSchema>;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -274,12 +296,133 @@ function AdjustModal({ product, onClose, onSuccess }: AdjustModalProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Shared icon button style for inventory row actions
+// ---------------------------------------------------------------------------
+const iconBtnStyle: React.CSSProperties = {
+  width:          32,
+  height:         32,
+  borderRadius:   6,
+  background:     'transparent',
+  border:         '1px solid var(--border)',
+  display:        'flex',
+  alignItems:     'center',
+  justifyContent: 'center',
+  cursor:         'pointer',
+  color:          'var(--text2)',
+  transition:     'all 150ms',
+};
+
+// ---------------------------------------------------------------------------
+// Price Modal
+// ---------------------------------------------------------------------------
+interface PriceModalProps {
+  product: InventoryProduct;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function PriceModal({ product, onClose, onSuccess }: PriceModalProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const ph = product.priceHistory?.[0];
+
+  const { register, handleSubmit, formState: { errors } } = useForm<PriceForm>({
+    resolver: zodResolver(priceSchema),
+    defaultValues: {
+      costPrice:      ph?.costPrice ?? '',
+      retailPrice:    ph?.retailPrice ?? '',
+      wholesalePrice: ph?.wholesalePrice ?? '',
+      note:           '',
+    },
+  });
+
+  const priceMut = useMutation({
+    mutationFn: (values: PriceForm) =>
+      productsApi.updateProductPrice(product.id, {
+        costPrice:      values.costPrice,
+        retailPrice:    values.retailPrice,
+        wholesalePrice: values.wholesalePrice,
+        note:           values.note || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast('success', 'Price updated successfully');
+      onSuccess();
+    },
+    onError: () => toast('error', 'Failed to update price'),
+  });
+
+  const fieldClass =
+    'w-full bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-text3 focus:outline-none focus:border-accent transition-colors';
+  const labelClass = 'block text-[12px] font-medium text-text2 mb-1';
+
+  return (
+    <form onSubmit={handleSubmit((v) => priceMut.mutate(v))} className="flex flex-col gap-4">
+      <div className="bg-surface2 rounded-lg p-3">
+        <p className="text-[13px] font-semibold text-text">{product.name}</p>
+        <p className="text-[12px] text-text2 mt-0.5">SKU: {product.sku}</p>
+      </div>
+      {ph && (
+        <div className="bg-surface2 rounded-lg p-4 text-[12px] text-text2 space-y-1">
+          <p className="font-medium text-text3 uppercase tracking-wider text-[10px] mb-2">Current Prices</p>
+          <div className="flex justify-between"><span>Cost</span><span className="font-mono">Rs. {fmt(ph.costPrice)}</span></div>
+          <div className="flex justify-between"><span>Retail</span><span className="font-mono">Rs. {fmt(ph.retailPrice)}</span></div>
+          <div className="flex justify-between"><span>Wholesale</span><span className="font-mono">Rs. {fmt(ph.wholesalePrice)}</span></div>
+        </div>
+      )}
+      <div>
+        <label className={labelClass}>New Cost Price (Rs.) <span className="text-danger">*</span></label>
+        <input {...register('costPrice')} type="number" step="0.01" min={0} className={fieldClass} />
+        <ErrorMessage message={errors.costPrice?.message} />
+      </div>
+      <div>
+        <label className={labelClass}>New Retail Price (Rs.) <span className="text-danger">*</span></label>
+        <input {...register('retailPrice')} type="number" step="0.01" min={0} className={fieldClass} />
+        <ErrorMessage message={errors.retailPrice?.message} />
+      </div>
+      <div>
+        <label className={labelClass}>New Wholesale Price (Rs.) <span className="text-danger">*</span></label>
+        <input {...register('wholesalePrice')} type="number" step="0.01" min={0} className={fieldClass} />
+        <ErrorMessage message={errors.wholesalePrice?.message} />
+      </div>
+      <div>
+        <label className={labelClass}>Note</label>
+        <input {...register('note')} className={fieldClass} placeholder="Reason for price change" />
+        <ErrorMessage message={errors.note?.message} />
+      </div>
+      <div className="flex gap-3 justify-end pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={priceMut.isPending}
+          className="px-4 py-2 bg-surface2 border border-border text-text rounded-lg text-[13px] font-medium hover:bg-border transition-colors disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={priceMut.isPending}
+          className="px-4 py-2 bg-accent hover:bg-accent/90 text-white rounded-lg text-[13px] font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+        >
+          {priceMut.isPending && <Spinner size="sm" />}
+          Update Price
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Stock table columns (shared between Stock Levels and Low Stock tabs)
 // ---------------------------------------------------------------------------
 function buildStockColumns(
   onAdjust: (p: InventoryProduct) => void,
   showPo: boolean,
-  navigate: ReturnType<typeof useNavigate>
+  navigate: ReturnType<typeof useNavigate>,
+  canManage: boolean,
+  onPrice: (p: InventoryProduct) => void,
+  onDelete: (p: InventoryProduct) => void,
 ): Column<InventoryProduct>[] {
   return [
     {
@@ -342,7 +485,7 @@ function buildStockColumns(
       key: 'actions',
       header: '',
       render: (row) => (
-        <div className="flex gap-2 justify-end">
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
           {showPo && (
             <button
               onClick={(e) => { e.stopPropagation(); navigate('/purchases/new'); }}
@@ -354,10 +497,29 @@ function buildStockColumns(
           )}
           <button
             onClick={(e) => { e.stopPropagation(); onAdjust(row); }}
-            className="px-2.5 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-[12px] font-medium hover:bg-accent/20 transition-colors"
+            title="Adjust Stock"
+            style={iconBtnStyle}
           >
-            Adjust
+            <ArrowUpDown size={15} />
           </button>
+          {canManage && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onPrice(row); }}
+              title="Edit Price"
+              style={iconBtnStyle}
+            >
+              <DollarSign size={15} />
+            </button>
+          )}
+          {canManage && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
+              title="Delete Product"
+              style={{ ...iconBtnStyle, color: 'var(--red)' }}
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
         </div>
       ),
     },
@@ -369,8 +531,15 @@ function buildStockColumns(
 // ---------------------------------------------------------------------------
 export function InventoryPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const canManage = user?.role === 'admin' || user?.role === 'manager';
+
   const [activeTab, setActiveTab] = useState<TabId>('stock');
   const [adjustingProduct, setAdjustingProduct] = useState<InventoryProduct | null>(null);
+  const [pricingProduct, setPricingProduct] = useState<InventoryProduct | null>(null);
+  const [deleteProduct, setDeleteProduct] = useState<InventoryProduct | null>(null);
 
   // Global FilterBar state (persists across Stock / Low-Stock / Valuation tabs)
   const [search, setSearch] = useState('');
@@ -385,6 +554,17 @@ export function InventoryPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => productsApi.deleteProduct(id),
+    onSuccess: () => {
+      toast('success', 'Product deleted');
+      setDeleteProduct(null);
+      qc.invalidateQueries({ queryKey: ['inventory'] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: () => toast('error', 'Failed to delete product'),
+  });
 
   // Queries
   const { data: inventory = [], isLoading: loadingInventory } = useQuery({
@@ -420,8 +600,8 @@ export function InventoryPage() {
     enabled: Boolean(productIdFilter),
   });
 
-  const stockColumns = buildStockColumns(setAdjustingProduct, false, navigate);
-  const lowStockColumns = buildStockColumns(setAdjustingProduct, true, navigate);
+  const stockColumns = buildStockColumns(setAdjustingProduct, false, navigate, canManage, setPricingProduct, setDeleteProduct);
+  const lowStockColumns = buildStockColumns(setAdjustingProduct, true, navigate, canManage, setPricingProduct, setDeleteProduct);
 
   // Global filtered + sorted inventory (used by Stock Levels and Valuation tabs)
   const filteredInventory = useMemo(() => {
@@ -899,6 +1079,34 @@ export function InventoryPage() {
           />
         )}
       </Modal>
+
+      {/* Edit Price Modal */}
+      <Modal
+        isOpen={pricingProduct !== null}
+        onClose={() => setPricingProduct(null)}
+        title={`Set Price — ${pricingProduct?.name ?? ''}`}
+        size="md"
+      >
+        {pricingProduct && (
+          <PriceModal
+            product={pricingProduct}
+            onClose={() => setPricingProduct(null)}
+            onSuccess={() => setPricingProduct(null)}
+          />
+        )}
+      </Modal>
+
+      {/* Delete Product Confirm */}
+      <ConfirmDialog
+        isOpen={deleteProduct !== null}
+        onClose={() => setDeleteProduct(null)}
+        onConfirm={() => { if (deleteProduct) deleteMut.mutate(deleteProduct.id); }}
+        title="Delete Product"
+        message={`Are you sure you want to delete "${deleteProduct?.name ?? ''}" (${deleteProduct?.sku ?? ''})?\nThis cannot be undone.`}
+        confirmLabel="Delete Product"
+        loading={deleteMut.isPending}
+        danger
+      />
     </div>
   );
 }
