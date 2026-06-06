@@ -216,17 +216,6 @@ button:active, .nav-item:active {
   justify-content: center;
 }
 
-/* ─── Sidebar responsive ──────────────────────── */
-.hamburger-btn {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .hamburger-btn {
-    display: flex !important;
-  }
-}
-
 /* Nav tooltip hover */
 div:hover > .nav-tooltip {
   opacity: 1 !important;
@@ -234,12 +223,6 @@ div:hover > .nav-tooltip {
 
 /* ─── Main layout responsive ──────────────────── */
 @media (max-width: 768px) {
-  .main-content {
-    margin-left: 0 !important;
-  }
-  .topbar {
-    padding-left: 56px;
-  }
   .topbar-breadcrumb {
     display: none;
   }

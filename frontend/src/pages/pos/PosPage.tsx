@@ -4,6 +4,7 @@ import {
   Barcode, X, Minus, Plus, Printer, ShoppingCart, User, ChevronRight, CheckCircle, Camera, CreditCard,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
@@ -28,7 +29,7 @@ interface CartItem {
 type CustomerPickerTab = 'all' | 'retail' | 'wholesale';
 
 function lineTotal(item: CartItem): number {
-  return item.unitPrice * item.quantity * (1 - item.discountPct / 100);
+  return item.unitPrice * item.quantity;
 }
 
 function getUnitPrice(product: Product, type: SaleType): number {
@@ -39,6 +40,8 @@ function getUnitPrice(product: Product, type: SaleType): number {
 
 export function PosPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isCashier = user?.role === 'cashier';
   const queryClient = useQueryClient();
 
   const barcodeRef = useRef<HTMLInputElement>(null);
@@ -192,13 +195,6 @@ export function PosPage() {
     );
   }
 
-  function setItemDiscount(productId: string, val: string) {
-    const pct = Math.min(100, Math.max(0, Number(val) || 0));
-    setCart((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, discountPct: pct } : i))
-    );
-  }
-
   function removeItem(productId: string) {
     setCart((prev) => prev.filter((i) => i.productId !== productId));
   }
@@ -225,7 +221,7 @@ export function PosPage() {
       items: cart.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
-        discountPct: i.discountPct,
+        discountPct: 0,
       })),
     });
   }
@@ -292,28 +288,30 @@ export function PosPage() {
       <div className="pos-desktop-layout" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* LEFT */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, padding: 20, overflowY: 'auto' }}>
-          {/* Sale type toggle */}
-          <div className="flex border border-border rounded-lg overflow-hidden w-fit">
-            {(['retail', 'wholesale'] as SaleType[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => {
-                  setSaleType(t);
-                  setCart((prev) =>
-                    prev.map((item) => {
-                      const p = products.find((pr) => pr.id === item.productId);
-                      return p ? { ...item, unitPrice: getUnitPrice(p, t) } : item;
-                    })
-                  );
-                }}
-                className={`px-5 py-2 text-[13px] font-medium transition-colors capitalize ${
-                  saleType === t ? 'bg-accent text-white' : 'bg-surface2 text-text2 hover:text-text'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          {/* Sale type toggle — hide from cashier */}
+          {!isCashier && (
+            <div className="flex border border-border rounded-lg overflow-hidden w-fit">
+              {(['retail', 'wholesale'] as SaleType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setSaleType(t);
+                    setCart((prev) =>
+                      prev.map((item) => {
+                        const p = products.find((pr) => pr.id === item.productId);
+                        return p ? { ...item, unitPrice: getUnitPrice(p, t) } : item;
+                      })
+                    );
+                  }}
+                  className={`px-5 py-2 text-[13px] font-medium transition-colors capitalize ${
+                    saleType === t ? 'bg-accent text-white' : 'bg-surface2 text-text2 hover:text-text'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Customer picker button */}
           <button
@@ -418,7 +416,6 @@ export function PosPage() {
                     <th className="px-4 py-2.5 text-left text-[11px] font-medium text-text2 uppercase tracking-wider">Product</th>
                     <th className="px-4 py-2.5 text-right text-[11px] font-medium text-text2 uppercase tracking-wider">Unit Price</th>
                     <th className="px-4 py-2.5 text-center text-[11px] font-medium text-text2 uppercase tracking-wider">Qty</th>
-                    <th className="px-4 py-2.5 text-center text-[11px] font-medium text-text2 uppercase tracking-wider w-20">Disc %</th>
                     <th className="px-4 py-2.5 text-right text-[11px] font-medium text-text2 uppercase tracking-wider">Total</th>
                     <th className="px-4 py-2.5 w-8" />
                   </tr>
@@ -451,16 +448,6 @@ export function PosPage() {
                             <Plus className="w-3 h-3 text-text2" />
                           </button>
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.discountPct}
-                          onChange={(e) => setItemDiscount(item.productId, e.target.value)}
-                          className="w-16 bg-surface2 border border-border rounded-lg px-2 py-1 text-[12px] text-text text-center focus:outline-none focus:border-accent"
-                        />
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="text-text text-[13px] font-semibold">
@@ -571,32 +558,34 @@ export function PosPage() {
         {/* Cart tab */}
         {posTab === 'cart' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 16, gap: 14, overflowY: 'auto' }}>
-            {/* Sale type toggle */}
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-              {(['retail', 'wholesale'] as SaleType[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => {
-                    setSaleType(t);
-                    setCart((prev) =>
-                      prev.map((item) => {
-                        const p = products.find((pr) => pr.id === item.productId);
-                        return p ? { ...item, unitPrice: getUnitPrice(p, t) } : item;
-                      })
-                    );
-                  }}
-                  style={{
-                    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500,
-                    textTransform: 'capitalize', border: 'none', cursor: 'pointer',
-                    background: saleType === t ? 'var(--accent)' : 'var(--surface2)',
-                    color: saleType === t ? 'white' : 'var(--text2)',
-                    transition: 'all 150ms',
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            {/* Sale type toggle — hide from cashier */}
+            {!isCashier && (
+              <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                {(['retail', 'wholesale'] as SaleType[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      setSaleType(t);
+                      setCart((prev) =>
+                        prev.map((item) => {
+                          const p = products.find((pr) => pr.id === item.productId);
+                          return p ? { ...item, unitPrice: getUnitPrice(p, t) } : item;
+                        })
+                      );
+                    }}
+                    style={{
+                      flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500,
+                      textTransform: 'capitalize', border: 'none', cursor: 'pointer',
+                      background: saleType === t ? 'var(--accent)' : 'var(--surface2)',
+                      color: saleType === t ? 'white' : 'var(--text2)',
+                      transition: 'all 150ms',
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Customer picker */}
             <button
@@ -748,31 +737,33 @@ export function PosPage() {
               )}
             </div>
 
-            {/* Sale type */}
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-              {(['retail', 'wholesale'] as SaleType[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => {
-                    setSaleType(t);
-                    setCart((prev) =>
-                      prev.map((item) => {
-                        const p = products.find((pr) => pr.id === item.productId);
-                        return p ? { ...item, unitPrice: getUnitPrice(p, t) } : item;
-                      })
-                    );
-                  }}
-                  style={{
-                    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500,
-                    textTransform: 'capitalize', border: 'none', cursor: 'pointer',
-                    background: saleType === t ? 'var(--accent)' : 'var(--surface2)',
-                    color: saleType === t ? 'white' : 'var(--text2)',
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            {/* Sale type — hide from cashier */}
+            {!isCashier && (
+              <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                {(['retail', 'wholesale'] as SaleType[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      setSaleType(t);
+                      setCart((prev) =>
+                        prev.map((item) => {
+                          const p = products.find((pr) => pr.id === item.productId);
+                          return p ? { ...item, unitPrice: getUnitPrice(p, t) } : item;
+                        })
+                      );
+                    }}
+                    style={{
+                      flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500,
+                      textTransform: 'capitalize', border: 'none', cursor: 'pointer',
+                      background: saleType === t ? 'var(--accent)' : 'var(--surface2)',
+                      color: saleType === t ? 'white' : 'var(--text2)',
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Order totals */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>

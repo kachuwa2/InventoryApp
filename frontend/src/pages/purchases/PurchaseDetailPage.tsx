@@ -378,13 +378,15 @@ export function PurchaseDetailPage() {
       <ConfirmDialog
         isOpen={showApprove} onClose={() => setShowApprove(false)}
         onConfirm={() => approveMutation.mutate()} loading={approveMutation.isPending}
-        title="Approve Purchase Order" message={`Approve ${po.orderNumber}? This cannot be undone.`}
+        title="Approve Purchase Order"
+        message={`Are you sure you want to approve ${po.supplierReference || `PO-${po.id?.slice(0, 8)}`} from ${po.supplier?.name || 'Unknown supplier'}?\n${po.items?.length || 0} items · Estimated value: Rs. ${fmt(totalValue)}\nOnce approved this order cannot be edited.`}
         confirmLabel="Approve" danger={false}
       />
       <ConfirmDialog
         isOpen={showCancel} onClose={() => setShowCancel(false)}
         onConfirm={() => cancelMutation.mutate()} loading={cancelMutation.isPending}
-        title="Cancel Purchase Order" message={`Cancel ${po.orderNumber}? This cannot be undone.`}
+        title="Cancel Purchase Order"
+        message={`Cancel ${po.supplierReference || `PO-${po.id?.slice(0, 8)}`} from ${po.supplier?.name || 'Unknown supplier'}?\n${po.items?.length || 0} items · Estimated value: Rs. ${fmt(totalValue)}\nThis action cannot be undone.`}
         confirmLabel="Cancel PO"
       />
 

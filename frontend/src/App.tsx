@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { SidebarProvider } from './contexts/SidebarContext';
 import { AppLayout } from './layouts/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -89,13 +90,11 @@ function AppWithAuth() {
         <Route path="/login"    element={<LoginPage />} />
         <Route path="/register" element={<RegisterRoute />} />
 
-        {/* Protected — all roles */}
-        <Route element={<ProtectedRoute />}>
+        {/* POS roles: admin, manager, cashier */}
+        <Route element={<ProtectedRoute roles={['admin', 'manager', 'cashier']} />}>
           <Route element={<AppLayout />}>
+            <Route path="/pos"       element={<PosPage />} />
             <Route path="/products"  element={<ProductsPage />} />
-            <Route path="/inventory" element={<ErrorBoundary><InventoryPage /></ErrorBoundary>} />
-            <Route path="/purchases" element={<PurchasesPage />} />
-            <Route path="/purchases/:id" element={<PurchaseDetailPage />} />
             <Route path="/sales"     element={<SalesPage />} />
             <Route path="/customers" element={<CustomersPage />} />
           </Route>
@@ -113,10 +112,12 @@ function AppWithAuth() {
           </Route>
         </Route>
 
-        {/* POS roles */}
-        <Route element={<ProtectedRoute roles={['admin', 'manager', 'cashier']} />}>
+        {/* Warehouse roles: admin, manager, warehouse */}
+        <Route element={<ProtectedRoute roles={['admin', 'manager', 'warehouse']} />}>
           <Route element={<AppLayout />}>
-            <Route path="/pos" element={<PosPage />} />
+            <Route path="/inventory" element={<ErrorBoundary><InventoryPage /></ErrorBoundary>} />
+            <Route path="/purchases" element={<PurchasesPage />} />
+            <Route path="/purchases/:id" element={<PurchaseDetailPage />} />
           </Route>
         </Route>
 
@@ -142,7 +143,9 @@ export default function App() {
       <BrowserRouter>
         <ToastProvider>
           <AuthProvider>
-            <AppWithAuth />
+            <SidebarProvider>
+              <AppWithAuth />
+            </SidebarProvider>
           </AuthProvider>
         </ToastProvider>
       </BrowserRouter>

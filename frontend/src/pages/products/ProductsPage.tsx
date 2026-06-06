@@ -17,6 +17,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { fmt } from '../../utils/cn';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import * as productsApi from '../../api/products';
 import * as categoriesApi from '../../api/categories';
 import * as suppliersApi from '../../api/suppliers';
@@ -130,8 +131,9 @@ interface PanelProps {
   onPrice: () => void;
   onDelete: () => void;
   onClose: () => void;
+  isCashier?: boolean;
 }
-function ProductPanel({ product, onEdit, onPrice, onDelete, onClose }: PanelProps) {
+function ProductPanel({ product, onEdit, onPrice, onDelete, onClose, isCashier }: PanelProps) {
   const price = getLatestPrice(product);
   const margin = price ? calcMargin(price.costPrice, price.retailPrice) : 0;
   const stock = product.currentStock ?? 0;
@@ -187,8 +189,8 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose }: PanelProp
           )}
         </div>
 
-        {/* Prices */}
-        {price && (
+        {/* Prices — hide from cashier */}
+        {!isCashier && price && (
           <div>
             <p className="text-[11px] font-medium text-text3 uppercase tracking-wider mb-2">Prices</p>
             <div className="grid grid-cols-3 gap-2">
@@ -209,6 +211,14 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose }: PanelProp
                 {margin.toFixed(1)}%
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Retail price only for cashier */}
+        {isCashier && price && (
+          <div className="bg-surface2 rounded-lg p-4">
+            <p className="text-[11px] font-medium text-text3 uppercase tracking-wider mb-2">Retail Price</p>
+            <p className="text-[16px] font-semibold text-text">Rs. {fmt(price.retailPrice)}</p>
           </div>
         )}
 
@@ -290,27 +300,29 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose }: PanelProp
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="px-5 py-4 border-t border-border space-y-2">
-        <button
-          onClick={onEdit}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg text-[13px] font-medium transition-colors"
-        >
-          <Edit2 className="w-3.5 h-3.5" /> Edit Product
-        </button>
-        <button
-          onClick={onPrice}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-surface2 hover:bg-border text-text border border-border rounded-lg text-[13px] font-medium transition-colors"
-        >
-          <DollarSign className="w-3.5 h-3.5" /> Set New Price
-        </button>
-        <button
-          onClick={onDelete}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-danger/10 hover:bg-danger/20 text-danger rounded-lg text-[13px] font-medium transition-colors"
-        >
-          <Trash2 className="w-3.5 h-3.5" /> Delete
-        </button>
-      </div>
+      {/* Actions — hide from cashier */}
+      {!isCashier && (
+        <div className="px-5 py-4 border-t border-border space-y-2">
+          <button
+            onClick={onEdit}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg text-[13px] font-medium transition-colors"
+          >
+            <Edit2 className="w-3.5 h-3.5" /> Edit Product
+          </button>
+          <button
+            onClick={onPrice}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-surface2 hover:bg-border text-text border border-border rounded-lg text-[13px] font-medium transition-colors"
+          >
+            <DollarSign className="w-3.5 h-3.5" /> Set New Price
+          </button>
+          <button
+            onClick={onDelete}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-danger/10 hover:bg-danger/20 text-danger rounded-lg text-[13px] font-medium transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -320,6 +332,8 @@ function ProductPanel({ product, onEdit, onPrice, onDelete, onClose }: PanelProp
 export function ProductsPage() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isCashier = user?.role === 'cashier';
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [stockStatus, setStockStatus] = useState('');
@@ -457,7 +471,7 @@ export function ProductsPage() {
   const categoryOptions = categories.map((c: Category) => ({ value: c.id, label: c.name }));
 
   // DataTable columns
-  const columns: Column<Product>[] = [
+  const allColumns: Column<Product>[] = [
     {
       key: 'name',
       header: 'Product',
@@ -557,6 +571,10 @@ export function ProductsPage() {
     },
   ];
 
+  const columns = isCashier
+    ? allColumns.filter(col => !['cost', 'wholesale', 'margin'].includes(col.key))
+    : allColumns;
+
   return (
     <div className={`p-6 min-h-screen bg-bg transition-all ${selectedProduct ? 'mr-85' : ''}`}>
       <PageHeader
@@ -621,6 +639,7 @@ export function ProductsPage() {
           onPrice={() => openPrice(selectedProduct)}
           onDelete={() => setDeleteId(selectedProduct.id)}
           onClose={() => setSelectedProduct(null)}
+          isCashier={isCashier}
         />
       )}
 
@@ -871,7 +890,7 @@ export function ProductsPage() {
         onClose={() => setDeleteId(null)}
         onConfirm={() => { if (deleteId) deleteMut.mutate(deleteId); }}
         title="Delete Product"
-        message="This product will be soft-deleted and removed from the catalog. This action cannot be undone."
+        message={`Delete "${selectedProduct?.name || 'Unknown product'}"?\nThis product will be soft-deleted and removed from the catalog.\nThis action cannot be undone.`}
         confirmLabel="Delete Product"
         loading={deleteMut.isPending}
         danger
