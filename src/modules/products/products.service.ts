@@ -19,6 +19,25 @@ export async function getCurrentPrice(productId: string) {
   });
 }
 
+// ─── Barcode generator ──────────────────────────────────
+// Generates a 13-digit EAN-13 style barcode.
+// Prefix 200 is the internal-use range (not a real GS1 prefix).
+function generateBarcode(): string {
+  const prefix = '200';
+  const random = Math.floor(Math.random() * 1_000_000_000)
+    .toString()
+    .padStart(9, '0');
+  const base = prefix + random; // 12 digits
+
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    const digit = parseInt(base[i]);
+    sum += i % 2 === 0 ? digit : digit * 3;
+  }
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return base + checkDigit;
+}
+
 // ─── Get all products ───────────────────────────────────
 export async function getAllProducts(filters?: {
   categoryId?: string;
@@ -117,13 +136,22 @@ export async function createProduct(
     throw new ConflictError(`SKU "${data.sku}" is already in use`);
   }
 
-  // Check barcode uniqueness if one was provided
-  if (data.barcode) {
+  // Resolve barcode: use the one provided, or generate a unique one
+  let barcode = data.barcode?.trim() || '';
+  if (!barcode) {
+    let attempts = 0;
+    do {
+      barcode = generateBarcode();
+      const collision = await db.product.findFirst({ where: { barcode } });
+      if (!collision) break;
+      attempts++;
+    } while (attempts < 10);
+  } else {
     const existingBarcode = await db.product.findFirst({
-      where: { barcode: data.barcode, deletedAt: null },
+      where: { barcode },
     });
     if (existingBarcode) {
-      throw new ConflictError(`Barcode "${data.barcode}" is already in use`);
+      throw new ConflictError(`Barcode "${barcode}" is already in use`);
     }
   }
 
@@ -147,7 +175,7 @@ export async function createProduct(
       data: {
         name:         data.name,
         sku:          data.sku,
-        barcode:      data.barcode,
+        barcode:      barcode,
         description:  data.description,
         unit:         data.unit,
         reorderPoint: data.reorderPoint,

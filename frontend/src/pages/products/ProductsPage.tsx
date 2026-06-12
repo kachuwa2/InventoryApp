@@ -365,7 +365,14 @@ export function ProductsPage() {
   const createMut = useMutation({
     mutationFn: (payload: Parameters<typeof productsApi.createProduct>[0]) =>
       productsApi.createProduct(payload),
-    onSuccess: () => { toast('success', 'Product created'); setShowAddModal(false); invalidate(); },
+    onSuccess: (product) => {
+      const msg = product.barcode
+        ? `Product created with barcode: ${product.barcode}`
+        : 'Product created';
+      toast('success', msg);
+      setShowAddModal(false);
+      invalidate();
+    },
     onError: () => toast('error', 'Failed to create product'),
   });
 
@@ -610,8 +617,8 @@ export function ProductsPage() {
               onChange={(e) => addForm.setValue('sku', e.target.value.toUpperCase())}
             />
           </Field>
-          <Field label="Barcode" error={addForm.formState.errors.barcode?.message}>
-            <input {...addForm.register('barcode')} className={inputCls} placeholder="Optional" />
+          <Field label="Barcode (leave empty to auto-generate)" error={addForm.formState.errors.barcode?.message}>
+            <input {...addForm.register('barcode')} className={inputCls} placeholder="Auto-generated if empty" />
           </Field>
           <Field label="Unit" error={addForm.formState.errors.unit?.message}>
             <select {...addForm.register('unit')} className={inputCls}>

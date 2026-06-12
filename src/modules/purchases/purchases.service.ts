@@ -25,8 +25,14 @@ export async function getAllPurchaseOrders(filters?: {
       supplier:  { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
       approvedBy:{ select: { id: true, name: true } },
-      // Count items without loading all of them
-      _count:    { select: { items: true } },
+      items: {
+        select: {
+          id:               true,
+          quantityOrdered:  true,
+          quantityReceived: true,
+          unitCost:         true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
