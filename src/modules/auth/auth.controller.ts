@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from './auth.service';
 import { getIp } from '../../utils/request';
+import { ValidationError } from '../../utils/errors';
 
 // Controllers are intentionally thin.
 // They only handle HTTP concerns:
@@ -134,6 +135,44 @@ export async function setupStatus(
   try {
     const count = await authService.getUserCount();
     res.json({ success: true, data: { hasUsers: count > 0 } });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function forgotPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { email } = req.body;
+    if (!email) throw new ValidationError('Email required');
+    await authService.forgotPassword(email);
+    res.json({
+      success: true,
+      message: 'If an account exists, a reset link has been sent',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      throw new ValidationError('Token and password required');
+    }
+    if (password.length < 8) {
+      throw new ValidationError('Password must be at least 8 characters');
+    }
+    await authService.resetPassword(token, password);
+    res.json({ success: true, message: 'Password reset successfully' });
   } catch (error) {
     next(error);
   }

@@ -1,13 +1,16 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { db } from '../../config/database';
 import {
   UnauthorizedError,
   ConflictError,
   NotFoundError,
+  ValidationError,
 } from '../../utils/errors';
 import { RegisterInput, LoginInput } from './auth.schema';
 import { UserRole } from '../../generated/prisma';
+import { sendPasswordResetEmail } from '../../services/email.service';
 
 // ─── Token Helpers ──────────────────────────────────────
 
@@ -159,6 +162,50 @@ export async function getMe(userId: string) {
 
 export async function getUserCount(): Promise<number> {
   return db.user.count({ where: { deletedAt: null } });
+}
+
+// ─── Forgot password ────────────────────────────────────
+
+export async function forgotPassword(email: string) {
+  const user = await db.user.findFirst({
+    where: { email, isActive: true, deletedAt: null },
+  });
+  // Always return success — prevents email enumeration attacks
+  if (!user) return { success: true };
+
+  const resetToken  = crypto.randomBytes(32).toString('hex');
+  const expiry      = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await db.user.update({
+    where: { id: user.id },
+    data: { resetToken, resetTokenExpiry: expiry },
+  });
+
+  await sendPasswordResetEmail(user.email, user.name, resetToken);
+  return { success: true };
+}
+
+// ─── Reset password ─────────────────────────────────────
+
+export async function resetPassword(token: string, newPassword: string) {
+  const user = await db.user.findFirst({
+    where: {
+      resetToken:        token,
+      resetTokenExpiry:  { gt: new Date() },
+    },
+  });
+  if (!user) throw new ValidationError('Invalid or expired reset token');
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash,
+      resetToken:        null,
+      resetTokenExpiry:  null,
+    },
+  });
+  return { success: true };
 }
 
 // ─── Refresh access token ───────────────────────────────

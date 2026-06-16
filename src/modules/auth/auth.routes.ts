@@ -88,7 +88,9 @@ router.get('/setup-status',                                                 auth
  *               code: UNAUTHORIZED
  *               message: Invalid email or password
  */
-router.post('/login',    validate(loginSchema),                             authController.login);
+router.post('/login',           validate(loginSchema),                      authController.login);
+router.post('/forgot-password',                                             authController.forgotPassword);
+router.post('/reset-password',                                              authController.resetPassword);
 /**
  * @swagger
  * /api/auth/refresh:

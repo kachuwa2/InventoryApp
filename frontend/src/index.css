@@ -232,9 +232,25 @@ div:hover > .nav-tooltip {
   .topbar-search {
     display: none;
   }
+  .logo-text {
+    display: none;
+  }
+  .topbar-user-info {
+    display: none;
+  }
   .topbar-title-mobile {
     display: block !important;
   }
+}
+
+/* ─── Number input — hide browser spinners ────── */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
 }
 
 .topbar-title-mobile {

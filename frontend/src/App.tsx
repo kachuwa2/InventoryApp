@@ -11,8 +11,10 @@ import { Spinner } from './components/ui/Spinner';
 import { FullPageSpinner } from './components/ui/FullPageSpinner';
 import * as authApi from './api/auth';
 
-const LoginPage       = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
-const RegisterPage    = lazy(() => import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+const LoginPage            = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const RegisterPage         = lazy(() => import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+const ForgotPasswordPage   = lazy(() => import('./pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage    = lazy(() => import('./pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
 const DashboardPage   = lazy(() => import('./pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const ProductsPage    = lazy(() => import('./pages/products/ProductsPage').then((m) => ({ default: m.ProductsPage })));
 const CategoriesPage  = lazy(() => import('./pages/categories/CategoriesPage').then((m) => ({ default: m.CategoriesPage })));
@@ -87,8 +89,10 @@ function AppWithAuth() {
     <Suspense fallback={<div className="min-h-screen bg-bg flex items-center justify-center"><Spinner size="lg" /></div>}>
       <Routes>
         {/* Public */}
-        <Route path="/login"    element={<LoginPage />} />
-        <Route path="/register" element={<RegisterRoute />} />
+        <Route path="/login"            element={<LoginPage />} />
+        <Route path="/register"         element={<RegisterRoute />} />
+        <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
+        <Route path="/reset-password"   element={<ResetPasswordPage />} />
 
         {/* POS: admin, manager, cashier */}
         <Route element={<ProtectedRoute roles={['admin', 'manager', 'cashier']} />}>

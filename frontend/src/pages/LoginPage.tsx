@@ -212,6 +212,13 @@ export function LoginPage() {
                 )}
               </div>
 
+              {/* Forgot password link */}
+              <div className="flex justify-end -mt-2">
+                <Link to="/forgot-password" className="text-[12px] text-accent hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+
               {/* Server error */}
               {serverError && (
                 <div

@@ -6,6 +6,7 @@
  */
 
 import app from './app';
+import { startDeliveryReminderJob } from './jobs/delivery-reminders';
 
 // ─── Server Configuration ───────────────────────────────────
 
@@ -19,8 +20,9 @@ app.listen(PORT, () => {
     ╠═══════════════════════════════════════════╣
     ║  API:   http://localhost:${PORT}          ╣
     ║  Docs:  http://localhost:${PORT}/api-docs ╣
-    ║  Env:   ${process.env.NODE_ENV}           ╣  
-    ╚═══════════════════════════════════════════╝  
+    ║  Env:   ${process.env.NODE_ENV}           ╣
+    ╚═══════════════════════════════════════════╝
   `);
+  startDeliveryReminderJob();
 });
 

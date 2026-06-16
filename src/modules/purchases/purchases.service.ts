@@ -6,6 +6,10 @@ import {
   ValidationError,
 } from '../../utils/errors';
 import {
+  sendDeliveryArrivedEmail,
+  getNotificationRecipients,
+} from '../../services/email.service';
+import {
   CreatePurchaseOrderInput,
   UpdatePurchaseOrderInput,
   ReceivePurchaseOrderInput,
@@ -289,7 +293,7 @@ export async function receivePurchaseOrder(
   }
 
   // Everything is valid — now execute the transaction
-  return db.$transaction(async (tx) => {
+  const received = await db.$transaction(async (tx) => {
     // Process each received item
     for (const receivedItem of data.items) {
       const orderItem = order.items.find(
@@ -353,6 +357,29 @@ export async function receivePurchaseOrder(
 
     return received;
   });
+
+  // Send delivery-arrived email after the transaction commits
+  try {
+    const recipients = await getNotificationRecipients();
+    if (recipients.length > 0) {
+      await sendDeliveryArrivedEmail(recipients, {
+        reference:    received.supplierReference || `PO-${received.id.slice(0, 8)}`,
+        supplierName: received.supplier.name,
+        receivedDate: new Date().toLocaleDateString('en-GB'),
+        itemsReceived: received.items
+          .filter(item => Number(item.quantityReceived) > 0)
+          .map(item => ({
+            name:     item.product.name,
+            ordered:  Number(item.quantityOrdered),
+            received: Number(item.quantityReceived),
+          })),
+      });
+    }
+  } catch (err) {
+    console.error('Delivery email error:', err);
+  }
+
+  return received;
 }
 
 // ─── Cancel purchase order ──────────────────────────────

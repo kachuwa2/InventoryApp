@@ -150,6 +150,7 @@ router.get('/top-products',  topProducts);
  *         $ref: '#/components/responses/Forbidden'
  */
 router.get('/slow-moving',   slowMoving);
+router.get('/sales-audit',   salesAudit);
 
 /**
  * @swagger

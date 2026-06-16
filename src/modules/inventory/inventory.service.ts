@@ -1,6 +1,7 @@
 import { db } from '../../config/database';
 import { Prisma } from '../../generated/prisma';
 import { NotFoundError, ValidationError } from '../../utils/errors';
+import { checkAndSendLowStockAlert } from '../../services/email.service';
 
 // ─── Movement type groups ───────────────────────────────
 // These are the movement types that ADD stock.
@@ -175,8 +176,8 @@ export async function adjustStock(
     }
   }
 
-  return db.$transaction(async (tx) => {
-    const movement = await tx.stockMovement.create({
+  const movement = await db.$transaction(async (tx) => {
+    const m = await tx.stockMovement.create({
       data: {
         productId:    data.productId,
         type:         data.type,
@@ -195,7 +196,7 @@ export async function adjustStock(
           ? 'STOCK_ADJUSTED_IN'
           : 'STOCK_ADJUSTED_OUT',
         tableName: 'stock_movements',
-        recordId:  movement.id,
+        recordId:  m.id,
         afterState: {
           productId: data.productId,
           quantity:  data.quantity,
@@ -206,8 +207,14 @@ export async function adjustStock(
       },
     });
 
-    return movement;
+    return m;
   });
+
+  if (data.type === 'adjustment_out') {
+    checkAndSendLowStockAlert([data.productId]).catch(console.error);
+  }
+
+  return movement;
 }
 
 // ─── Get inventory valuation ────────────────────────────

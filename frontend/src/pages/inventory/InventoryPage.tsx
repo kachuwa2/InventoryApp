@@ -423,8 +423,9 @@ function buildStockColumns(
   canManage: boolean,
   onPrice: (p: InventoryProduct) => void,
   onDelete: (p: InventoryProduct) => void,
+  isWarehouse: boolean,
 ): Column<InventoryProduct>[] {
-  return [
+  const cols: Column<InventoryProduct>[] = [
     {
       key: 'product',
       header: 'Product',
@@ -465,11 +466,11 @@ function buildStockColumns(
       header: 'Reorder Pt.',
       render: (row) => <span className="text-[13px] text-text2">{row.reorderPoint}</span>,
     },
-    {
+    ...(!isWarehouse ? [{
       key: 'value',
       header: 'Stock Value',
-      render: (row) => <span className="text-[13px] text-text">Rs. {fmt(row.stockValue)}</span>,
-    },
+      render: (row: InventoryProduct) => <span className="text-[13px] text-text">Rs. {fmt(row.stockValue)}</span>,
+    }] : []),
     {
       key: 'status',
       header: 'Status',
@@ -524,6 +525,7 @@ function buildStockColumns(
       ),
     },
   ];
+  return cols;
 }
 
 // ---------------------------------------------------------------------------
@@ -534,7 +536,8 @@ export function InventoryPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { toast } = useToast();
-  const canManage = user?.role === 'admin' || user?.role === 'manager';
+  const canManage   = user?.role === 'admin' || user?.role === 'manager';
+  const isWarehouse = user?.role === 'warehouse';
 
   const [activeTab, setActiveTab] = useState<TabId>('stock');
   const [adjustingProduct, setAdjustingProduct] = useState<InventoryProduct | null>(null);
@@ -600,8 +603,8 @@ export function InventoryPage() {
     enabled: Boolean(productIdFilter),
   });
 
-  const stockColumns = buildStockColumns(setAdjustingProduct, false, navigate, canManage, setPricingProduct, setDeleteProduct);
-  const lowStockColumns = buildStockColumns(setAdjustingProduct, true, navigate, canManage, setPricingProduct, setDeleteProduct);
+  const stockColumns    = buildStockColumns(setAdjustingProduct, false, navigate, canManage, setPricingProduct, setDeleteProduct, isWarehouse);
+  const lowStockColumns = buildStockColumns(setAdjustingProduct, true,  navigate, canManage, setPricingProduct, setDeleteProduct, isWarehouse);
 
   // Global filtered + sorted inventory (used by Stock Levels and Valuation tabs)
   const filteredInventory = useMemo(() => {
@@ -700,25 +703,27 @@ export function InventoryPage() {
       header: 'Current Qty',
       render: (row) => <span className="text-[13px] text-text">{row.currentStock}</span>,
     },
-    {
-      key: 'cost',
-      header: 'Cost Price',
-      render: (row) => {
-        const cost = row.priceHistory?.[0]?.costPrice;
-        return (
-          <span className="text-[13px] text-text">
-            {cost ? `Rs. ${fmt(cost)}` : '—'}
-          </span>
-        );
+    ...(!isWarehouse ? [
+      {
+        key: 'cost',
+        header: 'Cost Price',
+        render: (row: InventoryProduct) => {
+          const cost = row.priceHistory?.[0]?.costPrice;
+          return (
+            <span className="text-[13px] text-text">
+              {cost ? `Rs. ${fmt(cost)}` : '—'}
+            </span>
+          );
+        },
       },
-    },
-    {
-      key: 'totalValue',
-      header: 'Total Value',
-      render: (row) => (
-        <span className="text-[13px] font-medium text-text">Rs. {fmt(row.stockValue)}</span>
-      ),
-    },
+      {
+        key: 'totalValue',
+        header: 'Total Value',
+        render: (row: InventoryProduct) => (
+          <span className="text-[13px] font-medium text-text">Rs. {fmt(row.stockValue)}</span>
+        ),
+      },
+    ] as Column<InventoryProduct>[] : []),
   ];
 
   const movementCols: Column<StockMovement>[] = [
@@ -752,15 +757,15 @@ export function InventoryPage() {
         </span>
       ),
     },
-    {
+    ...(!isWarehouse ? [{
       key: 'unitCost',
       header: 'Unit Cost',
-      render: (row) => (
+      render: (row: StockMovement) => (
         <span className="text-[13px] text-text2">
           {row.unitCost ? `Rs. ${fmt(row.unitCost)}` : '—'}
         </span>
       ),
-    },
+    }] as Column<StockMovement>[] : []),
     {
       key: 'reference',
       header: 'Reference',
@@ -901,6 +906,13 @@ export function InventoryPage() {
 
       {/* Tab 3: Valuation */}
       {activeTab === 'valuation' && (
+        isWarehouse ? (
+          <EmptyState
+            icon={<TrendingUp className="w-10 h-10" />}
+            title="Valuation data is restricted"
+            message="Financial data is not available for warehouse users."
+          />
+        ) :
         <div className="flex flex-col gap-5">
           {loadingValuation ? (
             <div className="flex justify-center py-12"><Spinner /></div>

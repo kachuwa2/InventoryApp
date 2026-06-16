@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, Printer, Receipt as ReceiptIcon } from 'lucide-react';
+import { X, Printer, Receipt as ReceiptIcon, Search } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import type { Column } from '../../components/ui/DataTable';
@@ -24,9 +24,17 @@ function isToday(iso: string): boolean {
   return new Date(iso).toDateString() === new Date().toDateString();
 }
 
+const inputCls =
+  'bg-surface border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder-text3 focus:outline-none focus:border-accent transition-colors';
+
 export function SalesPage() {
   const [activeTab, setActiveTab] = useState<SalesTab>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Search / filter state
+  const [search, setSearch]       = useState('');
+  const [fromDate, setFromDate]   = useState('');
+  const [toDate, setToDate]       = useState('');
 
   const typeFilter: SaleType | undefined =
     activeTab === 'retail' ? 'retail' : activeTab === 'wholesale' ? 'wholesale' : undefined;
@@ -42,8 +50,33 @@ export function SalesPage() {
     enabled: selectedId !== null,
   });
 
-  const displayed =
-    activeTab === 'today' ? sales.filter((s) => isToday(s.createdAt)) : sales;
+  // Apply tab (today) + search + date filters client-side
+  const displayed = useMemo(() => {
+    let result = activeTab === 'today' ? sales.filter((s) => isToday(s.createdAt)) : sales;
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.invoiceNumber?.toLowerCase().includes(q) ||
+          s.customer?.name?.toLowerCase().includes(q)
+      );
+    }
+
+    if (fromDate) {
+      result = result.filter((s) => new Date(s.createdAt) >= new Date(fromDate));
+    }
+
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter((s) => new Date(s.createdAt) <= end);
+    }
+
+    return result;
+  }, [sales, activeTab, search, fromDate, toDate]);
+
+  const hasFilters = !!(search || fromDate || toDate);
 
   const columns: Column<Sale>[] = [
     {
@@ -113,6 +146,68 @@ export function SalesPage() {
   return (
     <div className="flex flex-col h-full relative">
       <PageHeader title="Sales" count={displayed.length} />
+
+      {/* Search + filter bar */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text3 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by invoice # or customer…"
+            className={`${inputCls} pl-9 w-64`}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-text3 hover:text-text"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Date from */}
+        <div className="flex items-center gap-2">
+          <label className="text-[12px] text-text2 whitespace-nowrap">From</label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className={inputCls}
+          />
+        </div>
+
+        {/* Date to */}
+        <div className="flex items-center gap-2">
+          <label className="text-[12px] text-text2 whitespace-nowrap">To</label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className={inputCls}
+          />
+        </div>
+
+        {/* Clear */}
+        {hasFilters && (
+          <button
+            onClick={() => { setSearch(''); setFromDate(''); setToDate(''); }}
+            className="text-[13px] text-text2 hover:text-danger border border-border rounded-lg px-3 py-2 transition-colors"
+          >
+            Clear
+          </button>
+        )}
+
+        {/* Result count */}
+        {hasFilters && (
+          <span className="text-[12px] text-text3 ml-auto">
+            Showing {displayed.length} of {sales.length} sales
+          </span>
+        )}
+      </div>
 
       {/* Tab bar */}
       <div className="flex gap-1 bg-surface2 rounded-lg p-1 mb-5 w-fit">

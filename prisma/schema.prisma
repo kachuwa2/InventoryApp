@@ -14,6 +14,8 @@ model User {
   passwordHash           String                @map("password_hash")
   role                   UserRole              @default(cashier)
   isActive               Boolean               @default(true) @map("is_active")
+  resetToken             String?               @map("reset_token")
+  resetTokenExpiry       DateTime?             @map("reset_token_expiry")
   createdAt              DateTime              @default(now()) @map("created_at")
   updatedAt              DateTime              @updatedAt @map("updated_at")
   deletedAt              DateTime?             @map("deleted_at")

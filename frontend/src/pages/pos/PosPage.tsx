@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Barcode, X, Minus, Plus, Printer, ShoppingCart, User, ChevronRight, CheckCircle, Camera, CreditCard,
+  Barcode, X, Printer, ShoppingCart, User, ChevronRight, CheckCircle, Camera, CreditCard,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../context/AuthContext';
@@ -192,6 +192,14 @@ export function PosPage() {
       prev
         .map((i) => (i.productId === productId ? { ...i, quantity: i.quantity + delta } : i))
         .filter((i) => i.quantity > 0)
+    );
+  }
+
+  function updateQty(productId: string, newQty: number) {
+    setCart((prev) =>
+      prev.map((i) =>
+        i.productId === productId ? { ...i, quantity: Math.max(1, newQty) } : i
+      )
     );
   }
 
@@ -431,22 +439,57 @@ export function PosPage() {
                         Rs. {fmt(item.unitPrice)}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 0, justifyContent: 'center' }}>
                           <button
-                            onClick={() => changeQty(item.productId, -1)}
-                            className="w-6 h-6 rounded-md border border-border bg-surface2 flex items-center justify-center hover:border-accent/50 transition-colors"
-                          >
-                            <Minus className="w-3 h-3 text-text2" />
-                          </button>
-                          <span className="text-text text-[13px] font-medium w-8 text-center">
-                            {item.quantity}
-                          </span>
+                            onClick={() => updateQty(item.productId, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            style={{
+                              width: 28, height: 28,
+                              border: '1px solid var(--border)',
+                              borderRadius: '6px 0 0 6px',
+                              background: 'var(--surface2)',
+                              color: 'var(--text)',
+                              cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
+                              opacity: item.quantity <= 1 ? 0.4 : 1,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 16,
+                            }}
+                          >−</button>
+                          <input
+                            type="number"
+                            min={1}
+                            value={item.quantity}
+                            onChange={e => {
+                              const val = parseInt(e.target.value);
+                              if (!isNaN(val) && val >= 1) updateQty(item.productId, val);
+                              else if (e.target.value === '') updateQty(item.productId, 1);
+                            }}
+                            className="pos-qty-input"
+                            style={{
+                              width: 44, height: 28,
+                              textAlign: 'center',
+                              border: '1px solid var(--border)',
+                              borderLeft: 'none',
+                              borderRight: 'none',
+                              background: 'var(--surface)',
+                              color: 'var(--text)',
+                              fontSize: 13,
+                              outline: 'none',
+                            }}
+                          />
                           <button
-                            onClick={() => changeQty(item.productId, +1)}
-                            className="w-6 h-6 rounded-md border border-border bg-surface2 flex items-center justify-center hover:border-accent/50 transition-colors"
-                          >
-                            <Plus className="w-3 h-3 text-text2" />
-                          </button>
+                            onClick={() => updateQty(item.productId, item.quantity + 1)}
+                            style={{
+                              width: 28, height: 28,
+                              border: '1px solid var(--border)',
+                              borderRadius: '0 6px 6px 0',
+                              background: 'var(--surface2)',
+                              color: 'var(--text)',
+                              cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 16,
+                            }}
+                          >+</button>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -691,14 +734,55 @@ export function PosPage() {
                       </button>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button onClick={() => changeQty(item.productId, -1)} style={{ width: 30, height: 30, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text2)' }}>
-                          <Minus size={12} />
-                        </button>
-                        <span style={{ color: 'var(--text)', fontSize: 14, fontWeight: 600, minWidth: 24, textAlign: 'center' }}>{item.quantity}</span>
-                        <button onClick={() => changeQty(item.productId, +1)} style={{ width: 30, height: 30, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text2)' }}>
-                          <Plus size={12} />
-                        </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                        <button
+                          onClick={() => updateQty(item.productId, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                          style={{
+                            width: 32, height: 32,
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px 0 0 6px',
+                            background: 'var(--surface2)',
+                            color: 'var(--text)',
+                            cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
+                            opacity: item.quantity <= 1 ? 0.4 : 1,
+                            fontSize: 18,
+                          }}
+                        >−</button>
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={e => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val) && val >= 1) updateQty(item.productId, val);
+                            else if (e.target.value === '') updateQty(item.productId, 1);
+                          }}
+                          className="pos-qty-input"
+                          style={{
+                            width: 50, height: 32,
+                            textAlign: 'center',
+                            border: '1px solid var(--border)',
+                            borderLeft: 'none',
+                            borderRight: 'none',
+                            background: 'var(--surface)',
+                            color: 'var(--text)',
+                            fontSize: 14,
+                            outline: 'none',
+                          }}
+                        />
+                        <button
+                          onClick={() => updateQty(item.productId, item.quantity + 1)}
+                          style={{
+                            width: 32, height: 32,
+                            border: '1px solid var(--border)',
+                            borderRadius: '0 6px 6px 0',
+                            background: 'var(--surface2)',
+                            color: 'var(--text)',
+                            cursor: 'pointer',
+                            fontSize: 18,
+                          }}
+                        >+</button>
                       </div>
                       <span style={{ color: 'var(--text)', fontSize: 14, fontWeight: 700 }}>Rs. {fmt(lineTotal(item))}</span>
                     </div>

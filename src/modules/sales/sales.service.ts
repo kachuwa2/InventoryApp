@@ -7,6 +7,7 @@ import {
 import { CreateSaleInput } from './sales.schema';
 import { getCurrentStock } from '../inventory/inventory.service';
 import { getCurrentPrice } from '../products/products.service';
+import { checkAndSendLowStockAlert } from '../../services/email.service';
 
 function formatInvoiceNumber(n: number): string {
   return `INV-${String(n).padStart(4, '0')}`;
@@ -25,7 +26,7 @@ export async function getAllSales(filters?: {
     include: {
       customer:  { select: { id: true, name: true, type: true } },
       createdBy: { select: { id: true, name: true } },
-      _count:    { select: { items: true } },
+      items:     { select: { id: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -133,7 +134,7 @@ export async function createSale(
     subtotal * orderDiscountMultiplier * 100
   ) / 100;
 
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     // Prisma 7 requires explicit connect for relation fields
     // when using scalar foreign key fields together
     const sale = await tx.salesOrder.create({
@@ -199,6 +200,11 @@ export async function createSale(
 
     return { ...sale, invoiceNumber: formatInvoiceNumber(sale.invoiceNumber) };
   });
+
+  // Fire-and-forget: check if any sold products are now below reorder point
+  checkAndSendLowStockAlert(data.items.map(i => i.productId)).catch(console.error);
+
+  return result;
 }
 
 // ─── Get daily sales summary ────────────────────────────
