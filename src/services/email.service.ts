@@ -1,9 +1,23 @@
 import { Resend } from 'resend'
 import { db } from '../config/database'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const apiKey = process.env.RESEND_API_KEY;
+
+if (!apiKey) {
+  throw new Error('RESEND_API_KEY is not configured');
+}
+
+const resend = new Resend(apiKey);
+
 const FROM   = process.env.EMAIL_FROM || 'StockFlow <onboarding@resend.dev>'
+
+console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY);
+console.log('EMAIL_FROM:', process.env.EMAIL_FROM);
+console.log('APP_URL:', process.env.APP_URL);
+
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'
+
+
 
 // ── Shared wrapper ───────────────────────────────────────
 function emailWrapper(title: string, body: string): string {

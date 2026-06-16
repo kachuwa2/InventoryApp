@@ -9,7 +9,8 @@
     "seed": "ts-node prisma/seed.ts",
     "seed:admin": "ts-node prisma/seed-admin.ts",
     "test": "jest --runInBand --forceExit",
-    "seed:prod": "npx prisma migrate deploy && npx ts-node prisma/seed.ts"
+    "seed:prod": "npx prisma migrate deploy && npx ts-node prisma/seed.ts",
+    "create-admin": "ts-node scripts/create-admin.ts"
   },
   "keywords": [],
   "author": "",

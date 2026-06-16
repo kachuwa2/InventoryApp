@@ -1,34 +1,26 @@
-const { PrismaClient } = require('../dist/generated/prisma')
+const { PrismaClient } = ('../dist/generated/prisma')
 const { PrismaPg } = require('@prisma/adapter-pg')
 
-async function checkAndSeed() {
+async function checkDatabase() {
   const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
   })
-  const prisma = new PrismaClient({ adapter })
+  const db = new PrismaClient({ adapter })
 
   try {
-    const userCount = await prisma.user.count()
-
+    const userCount = await db.user.count()
     if (userCount === 0) {
-      console.log('📦 Empty database detected — running seed...')
-      // Import and run the compiled seed
-      const { execSync } = require('child_process')
-      execSync('npx ts-node prisma/seed.ts', {
-        stdio: 'inherit',
-        env: process.env,
-      })
-      console.log('✅ Seed completed successfully')
+      console.log('⚠️  No users found in database.')
+      console.log('    Visit /setup to create the first admin.')
+      console.log('    Or run: npm run create-admin')
     } else {
-      console.log(`✅ Database already has ${userCount} users — skipping seed`)
+      console.log(`✅ Database ready — ${userCount} user(s) found`)
     }
   } catch (err) {
-    console.error('⚠️ Seed check failed:', err.message)
-    // Do not crash the server if seed fails
-    // The app can still run without seed data
+    console.error('Database check error:', err.message)
   } finally {
-    await prisma.$disconnect()
+    await db.$disconnect()
   }
 }
 
-checkAndSeed()
+checkDatabase()
