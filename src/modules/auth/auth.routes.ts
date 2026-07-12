@@ -32,7 +32,8 @@ const router = Router();
  *                   properties:
  *                     initialized: { type: boolean, example: true }
  */
-router.get('/setup-status',                                                 authController.setupStatus);
+router.get('/setup-status', authController.setupStatus);
+
 /**
  * @swagger
  * /api/auth/login:
@@ -88,9 +89,10 @@ router.get('/setup-status',                                                 auth
  *               code: UNAUTHORIZED
  *               message: Invalid email or password
  */
-router.post('/login',           validate(loginSchema),                      authController.login);
-router.post('/forgot-password',                                             authController.forgotPassword);
-router.post('/reset-password',                                              authController.resetPassword);
+router.post('/login', validate(loginSchema), authController.login);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+
 /**
  * @swagger
  * /api/auth/refresh:
@@ -125,7 +127,8 @@ router.post('/reset-password',                                              auth
  *               code: UNAUTHORIZED
  *               message: Refresh token invalid or expired
  */
-router.post('/refresh',                                                     authController.refresh);
+router.post('/refresh', authController.refresh);
+
 /**
  * @swagger
  * /api/auth/logout:
@@ -148,7 +151,7 @@ router.post('/refresh',                                                     auth
  *                   type: object
  *                   example: {}
  */
-router.post('/logout',                                                      authController.logout);
+router.post('/logout', authController.logout);
 
 // ─── Register: open for first user, admin-only afterward ─
 /**
