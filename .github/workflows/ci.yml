@@ -1,0 +1,80 @@
+name: StockInvent CI
+
+# Run on every push to main or dev branch
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ── Job 1: Check backend builds ─────────────────────
+  check-backend:
+    name: Backend Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download your repository code onto the GitHub machine
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Node.js 18
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # Install all dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Generate Prisma client
+      # We use a placeholder DATABASE_URL because
+      # prisma generate only reads the schema file
+      # it does NOT connect to a real database
+      - name: Generate Prisma client
+        run: npx prisma generate --config prisma.config.mjs
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      # Compile TypeScript to JavaScript
+      - name: Build TypeScript
+        run: npx tsc --noEmit
+
+      - name: Success
+        run: echo "✅ Backend builds successfully"
+
+  # ── Job 2: Check frontend builds ────────────────────
+  check-frontend:
+    name: Frontend Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # Install frontend dependencies
+      # working-directory tells GitHub to cd into frontend/ first
+      - name: Install dependencies
+        run: npm install
+        working-directory: frontend
+
+      # Build the React app
+      # We pass a placeholder API URL so Vite does not complain
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://placeholder.railway.app/api
+
+      - name: Success
+        run: echo "✅ Frontend builds successfully"
