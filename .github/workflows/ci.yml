@@ -117,21 +117,18 @@ jobs:
         run: npm install -g vercel
 
       - name: Deploy to Vercel
-        working-directory: frontend 
         run: |
           vercel deploy --prod \
+            --cwd frontend \
             --token=${{ secrets.VERCEL_TOKEN }} \
             --yes
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TELEMETRY_DISABLED: "1"
 
-      - name: Verify build output
-        working-directory: frontend
-        run: |
-          pwd
-          ls -la
-          ls -la dist
+      - name: Verify dist folder
+        run: ls -la frontend/dist/
 
       - name: Success
         run: echo "Frontend deployed to Vercel"
