@@ -187,14 +187,7 @@ export function PosPage() {
     }, 200);
   }
 
-  function changeQty(productId: string, delta: number) {
-    setCart((prev) =>
-      prev
-        .map((i) => (i.productId === productId ? { ...i, quantity: i.quantity + delta } : i))
-        .filter((i) => i.quantity > 0)
-    );
-  }
-
+ 
   function updateQty(productId: string, newQty: number) {
     setCart((prev) =>
       prev.map((i) =>
