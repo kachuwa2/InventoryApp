@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -45,7 +45,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -73,6 +73,12 @@ jobs:
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
+
+      - name: Validate Railway secrets
+        run: |
+          [ -n "${{ secrets.RAILWAY_TOKEN }}" ] || (echo "Missing RAILWAY_TOKEN" && exit 1)
+          [ -n "${{ secrets.RAILWAY_PROJECT_ID }}" ] || (echo "Missing RAILWAY_PROJECT_ID" && exit 1)
+          [ -n "${{ secrets.RAILWAY_SERVICE_ID }}" ] || (echo "Missing RAILWAY_SERVICE_ID" && exit 1)
 
       - name: Link Railway project
         run: |
@@ -105,7 +111,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
