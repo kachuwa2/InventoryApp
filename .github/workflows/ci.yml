@@ -119,7 +119,7 @@ jobs:
       - name: Deploy to Vercel
         run: |
           vercel deploy --prod \
-            --cwd frontend \
+            --cwd . \
             --token=${{ secrets.VERCEL_TOKEN }} \
             --yes
         env:
