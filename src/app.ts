@@ -105,6 +105,25 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ─── Readiness Check Endpoint ───────────────────────────────────
+// Used by orchestration platforms to check if the app is ready to serve traffic
+app.get('/ready', async (req, res) => {
+  try {
+    // Import db here to avoid circular dependencies
+    const { db } = await import('./config/database');
+    await db.$queryRaw`SELECT 1`;
+    res.json({ status: 'ready', database: 'connected' });
+  } catch (err) {
+    console.error('Readiness check failed:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    res.status(503).json({
+      status: 'not ready',
+      database: 'disconnected',
+      error: errorMessage
+    });
+  }
+});
+
 // ─── API Routes Mounting ────────────────────────────────────
 // Each route is mounted with its base path and module routes
 app.use('/api/auth',       authRoutes);        // Authentication (login, register, token refresh)

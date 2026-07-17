@@ -12,7 +12,6 @@
     "seed:prod": "npx prisma migrate deploy && npx ts-node prisma/seed.ts",
     "create-admin": "ts-node scripts/create-admin.ts"
   },
-  
   "keywords": [],
   "author": "",
   "license": "ISC",

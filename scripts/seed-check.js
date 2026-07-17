@@ -1,4 +1,4 @@
-const { PrismaClient } = ('../dist/generated/prisma')
+const { PrismaClient } = require('../dist/generated/prisma')
 const { PrismaPg } = require('@prisma/adapter-pg')
 
 async function checkDatabase() {
