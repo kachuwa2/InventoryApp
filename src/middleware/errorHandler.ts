@@ -6,14 +6,21 @@ import { ZodError } from 'zod';
 // Express identifies error handlers by the four
 // parameters — (err, req, res, next).
 // Normal middleware has three — (req, res, next).
-// This distinction is how Express knows to send
-// errors here instead of normal routes.
+// This distinction is how Express knows to send errors here instead of normal routes.
 export function errorHandler(
   err: Error,
   req: Request,
   res: Response,
   next: NextFunction
 ) {
+  // Add CORS header to error responses
+  // so browser can read the error message
+  const origin = req.headers.origin
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+  }
+
   // Zod throws this when request body fails validation
   if (err instanceof ZodError) {
     return res.status(400).json({

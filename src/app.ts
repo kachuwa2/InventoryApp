@@ -1,9 +1,9 @@
 /**
  * Inventory Management System - Express Application
- * 
+ *
  * Main Express application setup with middleware configuration and route mounting.
  * Handles all HTTP requests and delegates to appropriate module controllers.
- * 
+ *
  * Features:
  * - JSON and cookie parsing middleware
  * - Health check endpoint for monitoring
@@ -43,6 +43,14 @@ const app = express();
 // correctly detects HTTPS and secure cookies work.
 app.set('trust proxy', 1);
 
+// Define allowed origins for CORS
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'https://web-production-f5a2d.up.railway.app',
+];
+
 // ─── CORS ───────────────────────────────────────────────────
 app.use(cors({
   origin: (origin, callback) => {
@@ -51,6 +59,7 @@ app.use(cors({
     if (origin.includes('vercel.app')) return callback(null, true)
     if (origin.includes('devtunnels.ms')) return callback(null, true)
     if (origin.includes('railway.app')) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
     callback(new Error(`CORS blocked: ${origin}`))
   },
   credentials: true,
@@ -90,6 +99,12 @@ if (process.env.NODE_ENV === 'production') {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     keyGenerator: (req) => getIp(req),
+    skip: (req) => {
+      // Do not rate limit these public read endpoints
+      return req.path === '/api/auth/setup-status' ||
+             req.path === '/health' ||
+             req.path === '/ready'
+    },
     message: { success: false, message: 'Too many requests. Slow down.' },
   });
   app.use(generalLimiter);
