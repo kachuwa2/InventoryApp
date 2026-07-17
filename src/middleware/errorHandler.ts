@@ -13,9 +13,10 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ) {
-  // Add CORS header to error responses
-  // so browser can read the error message
-  const origin = req.headers.origin
+  // Ensure CORS headers are present on error responses
+  // so browsers can read the error instead of showing
+  // a misleading CORS error
+  const origin = req.headers.origin as string
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin)
     res.setHeader('Access-Control-Allow-Credentials', 'true')

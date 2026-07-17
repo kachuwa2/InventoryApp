@@ -47,7 +47,6 @@ app.set('trust proxy', 1);
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  'http://localhost:3000',
   'https://web-production-f5a2d.up.railway.app',
 ];
 
@@ -64,26 +63,20 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-  exposedHeaders: ['Set-Cookie'],
-}))
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-//Express v5 uses path-to-regexp v8 which no longer accepts the wildcard * as a route pattern. This is an Express v5 breaking change.
-// app.options('*', cors())
-
-// Handle preflight requests for all cross-origin routes
-app.options('/{*path}', cors())
+// Handle preflight for all routes
+app.options('/{*path}', cors());
 
 // ─── Security Headers ───────────────────────────────────────
 app.use(helmet());
 
-// ─── Middleware Setup ───────────────────────────────────────
-app.use(express.json());
-app.use(cookieParser());
-
 // ─── Rate Limiting ──────────────────────────────────────────
 if (process.env.NODE_ENV === 'production') {
-  const loginLimiter = rateLimit({
+  // Only rate limit login and register
+  // These are the only endpoints that need protection
+  const loginRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 5,
     standardHeaders: 'draft-8',
@@ -91,24 +84,13 @@ if (process.env.NODE_ENV === 'production') {
     keyGenerator: (req) => getIp(req),
     message: { success: false, message: 'Too many login attempts. Try again in 15 minutes.' },
   });
-  app.post('/api/auth/login', loginLimiter);
-
-  const generalLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    limit: 100,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    keyGenerator: (req) => getIp(req),
-    skip: (req) => {
-      // Do not rate limit these public read endpoints
-      return req.path === '/api/auth/setup-status' ||
-             req.path === '/health' ||
-             req.path === '/ready'
-    },
-    message: { success: false, message: 'Too many requests. Slow down.' },
-  });
-  app.use(generalLimiter);
+  app.use('/api/auth/login', loginRateLimiter);
+  app.use('/api/auth/register', loginRateLimiter);
 }
+
+// ─── Middleware Setup ───────────────────────────────────────
+app.use(express.json());
+app.use(cookieParser());
 
 // ─── Health Check Endpoint ──────────────────────────────────
 // Used for monitoring and load balancer health checks
