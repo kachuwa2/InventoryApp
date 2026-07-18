@@ -89,22 +89,43 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ─── Middleware Setup ───────────────────────────────────────
-app.use(express.json());
+// ─── Body Size Limits ───────────────────────────────────
+const SIZE_LIMIT = '10kb';
+app.use(express.json({ limit: SIZE_LIMIT }));
+app.use(express.urlencoded({ limit: SIZE_LIMIT, extended: true }));
 app.use(cookieParser());
 
 // ─── Health Check Endpoint ──────────────────────────────────
 // Used for monitoring and load balancer health checks
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV,
   });
+});
+
+// ─── Database Health Check Endpoint ───────────────────────────────────
+// Used by orchestration platforms to check database connectivity
+app.get('/health/db', async (_req, res) => {
+  try {
+    // Import db here to avoid circular dependencies
+    const { db } = await import('./config/database');
+    await db.$queryRaw`SELECT 1`;
+    res.status(200).json({ status: 'ok', service: 'database' });
+  } catch (err) {
+    res.status(503).json({
+      status: 'error',
+      service: 'database',
+      error: (err as any).message,
+    });
+  }
 });
 
 // ─── Readiness Check Endpoint ───────────────────────────────────
 // Used by orchestration platforms to check if the app is ready to serve traffic
-app.get('/ready', async (req, res) => {
+app.get('/ready', async (_req, res) => {
   try {
     // Import db here to avoid circular dependencies
     const { db } = await import('./config/database');

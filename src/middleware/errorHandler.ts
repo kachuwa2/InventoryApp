@@ -34,6 +34,15 @@ export function errorHandler(
     });
   }
 
+  // Body parser error - request too large
+  if ((err as any).type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      code: 'PAYLOAD_TOO_LARGE',
+      message: 'Request payload is too large',
+    });
+  }
+
   // Our own custom errors
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
