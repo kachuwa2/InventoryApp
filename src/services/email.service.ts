@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { db } from '../config/database'
+import logger from '../services/logger'
 
 const apiKey = process.env.RESEND_API_KEY;
 
@@ -10,6 +11,13 @@ if (!apiKey) {
 const resend = new Resend(apiKey);
 
 const FROM   = process.env.EMAIL_FROM || 'StockFlow <onboarding@resend.dev>'
+
+// Log email configuration
+logger.info({
+  apiKeyConfigured: !!apiKey,
+  emailFrom: process.env.EMAIL_FROM,
+  appUrl: process.env.APP_URL
+});
 
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'
 

@@ -2,6 +2,7 @@ import { db } from '../../config/database';
 import { Prisma } from '../../generated/prisma';
 import { NotFoundError, ValidationError } from '../../utils/errors';
 import { checkAndSendLowStockAlert } from '../../services/email.service';
+import logger from '../../services/logger';
 
 // ─── Movement type groups ───────────────────────────────
 // These are the movement types that ADD stock.

@@ -8,6 +8,7 @@ import { CreateSaleInput } from './sales.schema';
 import { getCurrentStock } from '../inventory/inventory.service';
 import { getCurrentPrice } from '../products/products.service';
 import { checkAndSendLowStockAlert } from '../../services/email.service';
+import logger from '../../services/logger';
 
 function formatInvoiceNumber(n: number): string {
   return `INV-${String(n).padStart(4, '0')}`;

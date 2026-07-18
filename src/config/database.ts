@@ -16,7 +16,14 @@ function createPrismaClient() {
     );
   }
 
-  const adapter = new PrismaPg({ connectionString });
+  const adapter = new PrismaPg({
+  connectionString,
+  // Connection pooling configuration
+  // Note: These are passed to the underlying node-postgres pool
+  // max: 20, // equivalent to DATABASE_POOL_MAX
+  // idleTimeoutMillis: 30000, // equivalent to DATABASE_IDLE_TIMEOUT
+  // connectionTimeoutMillis: 5000, // connection timeout
+});
 
   return new PrismaClient({
     adapter,
