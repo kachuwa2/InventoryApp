@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/errors';
 import { ZodError } from 'zod';
 import logger from '../services/logger';
+import { captureError } from '../config/sentry';
 
 // This function has FOUR parameters.
 // Express identifies error handlers by the four
@@ -63,9 +64,17 @@ export function errorHandler(
     });
   }
 
-  // Unknown error — don't leak internal details to the client
-  // Log it on the server for debugging
-  logger.error(err, '[Unhandled error]');
+  // Unknown error — capture in Sentry and log
+  if (!(err instanceof AppError) && !(err instanceof ZodError)) {
+    captureError(err, {
+      method: req.method,
+      path: req.path,
+      userId: req.user?.userId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  logger.error(err, `Unhandled error: ${req.method} ${req.path}`);
 
   return res.status(500).json({
     success: false,

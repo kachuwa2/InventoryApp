@@ -38,6 +38,10 @@ import logger          from './services/logger';
 // Load environment variables from .env file
 dotenv.config();
 
+// Initialize Sentry FIRST (must be before other code)
+import { initSentry } from './config/sentry';
+initSentry();
+
 // Initialize Express application
 const app = express();
 
@@ -45,23 +49,31 @@ const app = express();
 // correctly detects HTTPS and secure cookies work.
 app.set('trust proxy', 1);
 
-// Define allowed origins for CORS
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'https://web-production-f5a2d.up.railway.app',
-];
+// ─── CORS Origins Configuration ──────────────────────────
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim());
 
 // ─── CORS ───────────────────────────────────────────────────
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true)
-    if (origin.includes('localhost')) return callback(null, true)
-    if (origin.includes('vercel.app')) return callback(null, true)
-    if (origin.includes('devtunnels.ms')) return callback(null, true)
-    if (origin.includes('railway.app')) return callback(null, true)
-    if (allowedOrigins.includes(origin)) return callback(null, true)
-    callback(new Error(`CORS blocked: ${origin}`))
+  origin: (origin: string | undefined, callback: any) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow localhost development
+    if (origin.includes('localhost')) return callback(null, true);
+
+    // Allow common development/external tunneling services
+    if (origin.includes('vercel.app')) return callback(null, true);
+    if (origin.includes('devtunnels.ms')) return callback(null, true);
+    if (origin.includes('railway.app')) return callback(null, true);
+
+    // Allow configured origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
   },
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
