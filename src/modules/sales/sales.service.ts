@@ -202,7 +202,7 @@ export async function createSale(
   });
 
   // Fire-and-forget: check if any sold products are now below reorder point
-  checkAndSendLowStockAlert(data.items.map(i => i.productId)).catch(console.error);
+  await checkAndSendLowStockAlert(data.items.map(i => i.productId)).catch(err => logger.error(err, 'Failed to send low stock alert after sale'));
 
   return result;
 }

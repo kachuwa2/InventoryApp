@@ -376,7 +376,7 @@ export async function receivePurchaseOrder(
       });
     }
   } catch (err) {
-    console.error('Delivery email error:', err);
+    logger.error(err, 'Delivery email error');
   }
 
   return received;

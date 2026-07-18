@@ -1,11 +1,12 @@
 import cron from 'node-cron'
 import { db } from '../config/database'
 import { sendDeliveryReminder, getNotificationRecipients } from '../services/email.service'
+import logger from '../services/logger'
 
 export function startDeliveryReminderJob() {
   // Run every day at 8:00 AM
   cron.schedule('0 8 * * *', async () => {
-    console.log('Running delivery reminder check...')
+    logger.info('Running delivery reminder check')
     try {
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 2)
@@ -39,10 +40,10 @@ export function startDeliveryReminderJob() {
           itemCount: po._count.items,
         })
       }
-      console.log(`Sent ${upcomingPOs.length} delivery reminder(s)`)
+      logger.info({ count: upcomingPOs.length }, 'Sent delivery reminders')
     } catch (err) {
-      console.error('Delivery reminder job error:', err)
+      logger.error(err, 'Delivery reminder job error')
     }
   })
-  console.log('Delivery reminder job scheduled (daily 8 AM)')
+  logger.info('Delivery reminder job scheduled (daily 8 AM)')
 }

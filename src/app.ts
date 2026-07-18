@@ -32,6 +32,8 @@ import salesRoutes          from './modules/sales/sales.routes';
 import reportsRoutes    from './modules/reports/reports.routes';
 import usersRoutes      from './modules/users/users.routes';
 import auditLogsRoutes  from './modules/auditLogs/auditLogs.routes';
+import pinoHttp        from 'pino-http';
+import logger          from './services/logger';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -71,6 +73,9 @@ app.options('/{*path}', cors());
 
 // ─── Security Headers ───────────────────────────────────────
 app.use(helmet());
+
+// ─── Logging ────────────────────────────────────────────
+app.use(pinoHttp({ logger }));
 
 // ─── Rate Limiting ──────────────────────────────────────────
 if (process.env.NODE_ENV === 'production') {
@@ -132,7 +137,7 @@ app.get('/ready', async (_req, res) => {
     await db.$queryRaw`SELECT 1`;
     res.json({ status: 'ready', database: 'connected' });
   } catch (err) {
-    console.error('Readiness check failed:', err);
+    logger.error(err, 'Readiness check failed');
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     res.status(503).json({
       status: 'not ready',

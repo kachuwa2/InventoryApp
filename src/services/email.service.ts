@@ -11,10 +11,6 @@ const resend = new Resend(apiKey);
 
 const FROM   = process.env.EMAIL_FROM || 'StockFlow <onboarding@resend.dev>'
 
-console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY);
-console.log('EMAIL_FROM:', process.env.EMAIL_FROM);
-console.log('APP_URL:', process.env.APP_URL);
-
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'
 
 
@@ -46,7 +42,7 @@ async function send(
     await resend.emails.send({ from: FROM, to, subject, html })
     return { success: true }
   } catch (error) {
-    console.error('Email error:', error)
+    logger.error(error, 'Email error')
     return { success: false, error: (error as Error).message }
   }
 }
@@ -165,7 +161,7 @@ export async function checkAndSendLowStockAlert(productIds: string[]): Promise<v
       await sendLowStockAlert(recipients, lowProducts)
     }
   } catch (err) {
-    console.error('Low stock alert error:', err)
+    logger.error(err, 'Low stock alert error')
   }
 }
 

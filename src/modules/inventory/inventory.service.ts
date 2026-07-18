@@ -211,7 +211,7 @@ export async function adjustStock(
   });
 
   if (data.type === 'adjustment_out') {
-    checkAndSendLowStockAlert([data.productId]).catch(console.error);
+    await checkAndSendLowStockAlert([data.productId]).catch(err => logger.error(err, 'Failed to send low stock alert'));
   }
 
   return movement;

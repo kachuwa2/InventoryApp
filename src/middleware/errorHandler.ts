@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/errors';
 import { ZodError } from 'zod';
+import logger from '../services/logger';
 
 // This function has FOUR parameters.
 // Express identifies error handlers by the four
@@ -64,7 +65,7 @@ export function errorHandler(
 
   // Unknown error — don't leak internal details to the client
   // Log it on the server for debugging
-  console.error('[Unhandled error]', err);
+  logger.error(err, '[Unhandled error]');
 
   return res.status(500).json({
     success: false,
