@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/errors';
 import { ZodError } from 'zod';
-import logger from '../services/logger';
+import { logger } from '../utils/logger';
 import { captureError } from '../config/sentry';
 
 // This function has FOUR parameters.
@@ -74,7 +74,10 @@ export function errorHandler(
     });
   }
 
-  logger.error(err, `Unhandled error: ${req.method} ${req.path}`);
+  logger.error('Unhandled error', err, {
+    method: req.method,
+    path: req.path,
+  });
 
   return res.status(500).json({
     success: false,

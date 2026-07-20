@@ -16,14 +16,20 @@ function createPrismaClient() {
     );
   }
 
+  // Parse connection pool options from environment variables with defaults
+  const minPoolSize = parseInt(process.env.DATABASE_POOL_MIN || '1', 10);
+  const maxPoolSize = parseInt(process.env.DATABASE_POOL_MAX || '20', 10);
+  const idleTimeoutMillis = parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30000', 10);
+  // Connection timeout for new connections (5 seconds)
+  const connectionTimeoutMillis = 5000;
+
   const adapter = new PrismaPg({
-  connectionString,
-  // Connection pooling configuration
-  // Note: These are passed to the underlying node-postgres pool
-  // max: 20, // equivalent to DATABASE_POOL_MAX
-  // idleTimeoutMillis: 30000, // equivalent to DATABASE_IDLE_TIMEOUT
-  // connectionTimeoutMillis: 5000, // connection timeout
-});
+    connectionString,
+    min: minPoolSize,
+    max: maxPoolSize,
+    idleTimeoutMillis,
+    connectionTimeoutMillis,
+  });
 
   return new PrismaClient({
     adapter,

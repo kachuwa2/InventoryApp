@@ -5,24 +5,24 @@
  * This is the main entry point for the application.
  */
 
+import { validateEnv } from './utils/validateEnv';
+validateEnv();
 import app from './app';
 import { startDeliveryReminderJob } from './jobs/delivery-reminders';
-import logger from './services/logger';
+import { logger } from './utils/logger';
 
-// ─── Server Configuration ───────────────────────────────
+// ─── Server Configuration ────
 
 const PORT = process.env.PORT || 8080;
 
-// ─── Start Server ───────────────────────────────────────
+// ─── Start Server ──────
 app.listen(PORT, () => {
-  logger.info(`
-    ╔══════════════════════════════════════════════╗
-    ║  Inventory Management System Running         ║
-    ╠══════════════════════════════════════════════╣
-    ║  API:   http://localhost:${PORT}             ║
-    ║  Docs:  http://localhost:${PORT}/api-docs    ║
-    ║  Env:   ${process.env.NODE_ENV}              ║  
-    ╚══════════════════════════════════════════════╝
-  `);
+  logger.info('Server started', {
+    port: PORT,
+    environment: process.env.NODE_ENV,
+    url: `http://localhost:${PORT}`,
+    docs: `http://localhost:${PORT}/api-docs`,
+  });
+
   startDeliveryReminderJob();
 });

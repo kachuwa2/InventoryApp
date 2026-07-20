@@ -117,9 +117,8 @@ app.use(cookieParser());
 app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
+    environment: process.env.NODE_ENV,
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    env: process.env.NODE_ENV,
   });
 });
 
@@ -130,11 +129,11 @@ app.get('/health/db', async (_req, res) => {
     // Import db here to avoid circular dependencies
     const { db } = await import('./config/database');
     await db.$queryRaw`SELECT 1`;
-    res.status(200).json({ status: 'ok', service: 'database' });
+    res.status(200).json({ status: 'ok', database: 'connected' });
   } catch (err) {
     res.status(503).json({
       status: 'error',
-      service: 'database',
+      database: 'disconnected',
       error: (err as any).message,
     });
   }
