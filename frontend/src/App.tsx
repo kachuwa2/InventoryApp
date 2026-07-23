@@ -89,36 +89,36 @@ function AppWithAuth() {
     <Suspense fallback={<div className="min-h-screen bg-bg flex items-center justify-center"><Spinner size="lg" /></div>}>
       <Routes>
         {/* Public */}
-        <Route path="/login"            element={<LoginPage />} />
-        <Route path="/register"         element={<RegisterRoute />} />
-        <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
-        <Route path="/reset-password"   element={<ResetPasswordPage />} />
+        <Route path="/login"            element={<ErrorBoundary><LoginPage /></ErrorBoundary>} />
+        <Route path="/register"         element={<ErrorBoundary><RegisterRoute /></ErrorBoundary>} />
+        <Route path="/forgot-password"  element={<ErrorBoundary><ForgotPasswordPage /></ErrorBoundary>} />
+        <Route path="/reset-password"   element={<ErrorBoundary><ResetPasswordPage /></ErrorBoundary>} />
 
         {/* POS: admin, manager, cashier */}
         <Route element={<ProtectedRoute roles={['admin', 'manager', 'cashier']} />}>
           <Route element={<AppLayout />}>
-            <Route path="/pos" element={<PosPage />} />
+            <Route path="/pos" element={<ErrorBoundary><PosPage /></ErrorBoundary>} />
           </Route>
         </Route>
 
         {/* Catalog & Sales: admin, manager, cashier, viewer */}
         <Route element={<ProtectedRoute roles={['admin', 'manager', 'cashier', 'viewer']} />}>
           <Route element={<AppLayout />}>
-            <Route path="/products"  element={<ProductsPage />} />
-            <Route path="/sales"     element={<SalesPage />} />
-            <Route path="/customers" element={<CustomersPage />} />
+            <Route path="/products"  element={<ErrorBoundary><ProductsPage /></ErrorBoundary>} />
+            <Route path="/sales"     element={<ErrorBoundary><SalesPage /></ErrorBoundary>} />
+            <Route path="/customers" element={<ErrorBoundary><CustomersPage /></ErrorBoundary>} />
           </Route>
         </Route>
 
         {/* Admin + Manager */}
         <Route element={<ProtectedRoute roles={['admin', 'manager']} />}>
           <Route element={<AppLayout />}>
-            <Route path="/dashboard"     element={<DashboardPage />} />
-            <Route path="/categories"    element={<CategoriesPage />} />
-            <Route path="/suppliers"     element={<SuppliersPage />} />
-            <Route path="/purchases/new" element={<NewPurchasePage />} />
-            <Route path="/reports"              element={<ReportsPage />} />
-            <Route path="/reports/sales-audit" element={<SalesAuditPage />} />
+            <Route path="/dashboard"     element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+            <Route path="/categories"    element={<ErrorBoundary><CategoriesPage /></ErrorBoundary>} />
+            <Route path="/suppliers"     element={<ErrorBoundary><SuppliersPage /></ErrorBoundary>} />
+            <Route path="/purchases/new" element={<ErrorBoundary><NewPurchasePage /></ErrorBoundary>} />
+            <Route path="/reports"              element={<ErrorBoundary><ReportsPage /></ErrorBoundary>} />
+            <Route path="/reports/sales-audit" element={<ErrorBoundary><SalesAuditPage /></ErrorBoundary>} />
           </Route>
         </Route>
 
@@ -126,22 +126,22 @@ function AppWithAuth() {
         <Route element={<ProtectedRoute roles={['admin', 'manager', 'warehouse']} />}>
           <Route element={<AppLayout />}>
             <Route path="/inventory" element={<ErrorBoundary><InventoryPage /></ErrorBoundary>} />
-            <Route path="/purchases" element={<PurchasesPage />} />
-            <Route path="/purchases/:id" element={<PurchaseDetailPage />} />
+            <Route path="/purchases" element={<ErrorBoundary><PurchasesPage /></ErrorBoundary>} />
+            <Route path="/purchases/:id" element={<ErrorBoundary><PurchaseDetailPage /></ErrorBoundary>} />
           </Route>
         </Route>
 
         {/* Admin only */}
         <Route element={<ProtectedRoute roles={['admin']} />}>
           <Route element={<AppLayout />}>
-            <Route path="/audit" element={<AuditPage />} />
-            <Route path="/users" element={<UsersPage />} />
+            <Route path="/audit" element={<ErrorBoundary><AuditPage /></ErrorBoundary>} />
+            <Route path="/users" element={<ErrorBoundary><UsersPage /></ErrorBoundary>} />
           </Route>
         </Route>
 
         {/* Default */}
         <Route path="/" element={<RoleRedirect />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<ErrorBoundary><NotFoundPage /></ErrorBoundary>} />
       </Routes>
     </Suspense>
   );

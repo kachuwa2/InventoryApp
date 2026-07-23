@@ -84,7 +84,28 @@ app.use(cors({
 app.options('/{*path}', cors());
 
 // ─── Security Headers ───────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          ...(process.env.NODE_ENV !== "production" ? ["'unsafe-eval'"] : []),
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", ...allowedOrigins],
+        fontSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        frameSrc: ["'none'"],
+        upgradeInsecureRequests:
+          process.env.NODE_ENV === "production" ? [] : null,
+      },
+    },
+  })
+);
 
 // ─── Logging ────────────────────────────────────────────
 app.use(pinoHttp({ logger }));
