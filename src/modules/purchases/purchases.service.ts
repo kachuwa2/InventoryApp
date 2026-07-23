@@ -201,7 +201,6 @@ export async function updatePurchaseOrder(
 // ─── Approve purchase order ─────────────────────────────
 // Moves status from draft to approved.
 // Only admin or manager can approve.
-// The approver is recorded for accountability.
 export async function approvePurchaseOrder(
   id: string,
   userId: string,
@@ -214,176 +213,271 @@ export async function approvePurchaseOrder(
 
   if (order.status !== 'draft') {
     throw new ConflictError(
-      `Cannot approve — order is already "${order.status}"`
+      `Cannot approve a purchase order with status: ${order.status}. ` +
+      `Only draft orders can be approved.`
     );
   }
 
   return db.$transaction(async (tx) => {
-    const approved = await tx.purchaseOrder.update({
+    const updated = await tx.purchaseOrder.update({
       where: { id },
       data: {
-        status:      'approved',
+        status:    'approved',
         approvedById: userId,
-        approvedAt:   new Date(),
+        approvedAt: new Date(),
+      },
+      include: {
+        supplier:  { select: { id: true, name: true } },
+        createdBy: { select: { id: true, name: true } },
+        approvedBy:{ select: { id: true, name: true } },
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, sku: true }
+            },
+          },
+        },
       },
     });
 
     await tx.auditLog.create({
       data: {
-        userId,
+        user:      { connect: { id: userId } },
         action:    'PURCHASE_ORDER_APPROVED',
         tableName: 'purchase_orders',
         recordId:  id,
-        beforeState: { status: 'draft' },
-        afterState:  { status: 'approved' },
-        ipAddress:   ip,
+        afterState: {
+          status: 'approved',
+          approvedById: userId,
+        },
+        ipAddress: ip,
       },
     });
 
-    return approved;
+    return updated;
   });
 }
 
 // ─── Receive purchase order ─────────────────────────────
-// This is the most critical function in the system.
-// When stock physically arrives, this function:
-// 1. Validates the order is in approved status
-// 2. For each item received:
-//    a. Creates a stock movement (adds to ledger)
-//    b. Updates the quantity received on the order item
-// 3. Updates the order status to received
-// 4. Writes an audit log entry
-// ALL of this happens in ONE database transaction.
-// If anything fails, everything rolls back.
+// Moves status from approved to received (when fully received)
+// or keeps as approved (when partially received)
+// Only warehouse or manager can receive.
 export async function receivePurchaseOrder(
   id: string,
-  data: ReceivePurchaseOrderInput,
+  data: { items: Array<{ itemId: string; quantityReceived: number }>, notes?: string },
   userId: string,
   ip: string
 ) {
-  // Load the full order with all items
-  const order = await db.purchaseOrder.findFirst({
+  // Step 1 — verify PO exists and is in approved status
+  const po = await db.purchaseOrder.findFirst({
     where: { id },
-    include: { items: true },
-  });
-  if (!order) throw new NotFoundError('Purchase order');
+    include: {
+      items: true,
+      supplier: { select: { id: true, name: true } },
+    },
+  })
 
-  // Can only receive an approved order
-  if (order.status !== 'approved') {
+  if (!po) throw new NotFoundError('Purchase order')
+
+  if (po.status !== 'approved') {
     throw new ConflictError(
-      `Cannot receive — order status is "${order.status}". Order must be approved first.`
-    );
+      `Cannot receive a purchase order with status: ${po.status}. ` +
+      `Only approved orders can be received.`
+    )
   }
 
-  // Validate each item being received
-  for (const receivedItem of data.items) {
-    const orderItem = order.items.find(i => i.id === receivedItem.itemId);
+  // Step 2 — aggregate duplicate itemIds
+  // If same itemId appears twice combine quantities
+  const aggregated = new Map<string, number>()
 
-    if (!orderItem) {
+  for (const item of data.items) {
+    const existing = aggregated.get(item.itemId) ?? 0
+    aggregated.set(
+      item.itemId,
+      existing + Number(item.quantityReceived)
+    )
+  }
+
+  // Step 3 — validate each item
+  // Build a map of PO items for quick lookup
+  const poItemMap = new Map(po.items.map(i => [i.id, i]))
+
+  for (const [itemId, newQty] of aggregated) {
+    // Verify itemId belongs to this PO
+    const poItem = poItemMap.get(itemId)
+    if (!poItem) {
       throw new ValidationError(
-        `Item ${receivedItem.itemId} does not belong to this order`
-      );
+        `Item ${itemId} does not belong to this purchase order`
+      )
     }
 
-    // Cannot receive more than was ordered
-    if (receivedItem.quantityReceived > Number(orderItem.quantityOrdered)) {
+    if (newQty < 0) {
       throw new ValidationError(
-        `Cannot receive ${receivedItem.quantityReceived} units — only ${orderItem.quantityOrdered} were ordered`
-      );
+        `Received quantity cannot be negative for item ${itemId}`
+      )
+    }
+
+    // Validate total received does not exceed ordered
+    // Formula: already received + newly receiving <= ordered
+    const alreadyReceived = Number(poItem.quantityReceived)
+    const ordered         = Number(poItem.quantityOrdered)
+    const totalReceived   = alreadyReceived + newQty
+
+    if (totalReceived > ordered) {
+      throw new ValidationError(
+        `Cannot receive ${newQty} units for "${poItem.productId}". ` +
+        `Already received: ${alreadyReceived}, ` +
+        `Ordered: ${ordered}, ` +
+        `Maximum additional: ${ordered - alreadyReceived}`
+      )
     }
   }
 
-  // Everything is valid — now execute the transaction
-  const received = await db.$transaction(async (tx) => {
-    // Process each received item
-    for (const receivedItem of data.items) {
-      const orderItem = order.items.find(
-        i => i.id === receivedItem.itemId
-      )!;
+  // Step 4 — process in transaction
+  return db.$transaction(async (tx) => {
+    const stockMovements: Array<{
+      productId: string
+      quantity:  number
+      unitCost:  number
+    }> = []
 
-      // Skip items where quantity received is zero —
-      // the supplier might not have shipped everything
-      if (receivedItem.quantityReceived <= 0) continue;
+    // Update quantityReceived on each PO line item
+    for (const [itemId, newQty] of aggregated) {
+      const poItem = poItemMap.get(itemId)!
 
-      // Create a stock movement for this item.
-      // This is what actually adds the stock to the ledger.
-      // The unitCost records exactly what we paid per unit
-      // for this specific batch of goods.
-      await tx.stockMovement.create({
-        data: {
-          productId:     orderItem.productId,
-          type:          'purchase',
-          quantity:      receivedItem.quantityReceived,
-          unitCost:      orderItem.unitCost,
-          referenceId:   order.id,
-          referenceType: 'purchase_order',
-          notes: `Received via PO ${order.id}`,
-          performedById: userId,
-        },
-      });
+      if (newQty === 0) continue // skip if nothing received
 
-      // Update how many units were received on this line item
       await tx.purchaseOrderItem.update({
-        where: { id: receivedItem.itemId },
+        where: { id: itemId },
         data: {
-          quantityReceived: receivedItem.quantityReceived,
+          quantityReceived: {
+            increment: newQty,
+          },
         },
-      });
+      })
+
+      stockMovements.push({
+        productId: poItem.productId,
+        quantity:  newQty,
+        unitCost:  Number(poItem.unitCost),
+      })
     }
 
-    // Mark the entire order as received
-    const received = await tx.purchaseOrder.update({
+    // Step 5 — create stock movements for received items
+    // type 'purchase' = stock coming IN
+    await Promise.all(
+      stockMovements.map(movement =>
+        tx.stockMovement.create({
+          data: {
+            product:       { connect: { id: movement.productId } },
+            type:          'purchase',
+            quantity:      movement.quantity,
+            unitCost:      movement.unitCost,
+            referenceId:   id,
+            referenceType: 'purchase_order',
+            notes:         data.notes ?? `Received from PO ${id}`,
+            performedBy:   { connect: { id: userId } },
+          },
+        })
+      )
+    )
+
+    // Step 6 — determine correct PO status after this receipt
+    // Read the updated items to check if fully received
+    const updatedItems = await tx.purchaseOrderItem.findMany({
+      where: { purchaseOrderId: id },
+    })
+
+    const allFullyReceived = updatedItems.every(
+      item =>
+        Number(item.quantityReceived) >= Number(item.quantityOrdered)
+    )
+
+    const someReceived = updatedItems.some(
+      item => Number(item.quantityReceived) > 0
+    )
+
+    // Only mark as 'received' when ALL items are fully received
+    // Keep as 'approved' if any items still have remaining qty
+    let newStatus: 'received' | 'approved' = 'approved'
+
+    if (allFullyReceived) {
+      newStatus = 'received'
+    }
+
+    // Update PO with new status and receivedAt timestamp
+    const updatedPO = await tx.purchaseOrder.update({
       where: { id },
       data: {
-        status:     'received',
-        receivedAt: new Date(),
+        status:     newStatus,
+        receivedAt: allFullyReceived ? new Date() : null,
       },
       include: {
-        items:    { include: { product: true } },
-        supplier: true,
+        supplier:  { select: { id: true, name: true } },
+        createdBy: { select: { id: true, name: true } },
+        approvedBy:{ select: { id: true, name: true } },
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, sku: true }
+            },
+          },
+        },
       },
-    });
+    })
 
+    // Step 7 — audit log
     await tx.auditLog.create({
       data: {
-        userId,
+        user:      { connect: { id: userId } },
         action:    'PURCHASE_ORDER_RECEIVED',
         tableName: 'purchase_orders',
         recordId:  id,
-        beforeState: { status: 'approved' },
-        afterState:  { status: 'received' },
-        ipAddress:   ip,
+        afterState: {
+          status:          newStatus,
+          itemsReceived:   stockMovements.length,
+          allFullyReceived,
+          supplierName:    po.supplier.name,
+        },
+        ipAddress: ip,
       },
-    });
+    })
 
-    return received;
-  });
-
-  // Send delivery-arrived email after the transaction commits
-  try {
-    const recipients = await getNotificationRecipients();
-    if (recipients.length > 0) {
-      await sendDeliveryArrivedEmail(recipients, {
-        reference:    received.supplierReference || `PO-${received.id.slice(0, 8)}`,
-        supplierName: received.supplier.name,
-        receivedDate: new Date().toLocaleDateString('en-GB'),
-        itemsReceived: received.items
-          .filter(item => Number(item.quantityReceived) > 0)
-          .map(item => ({
-            name:     item.product.name,
-            ordered:  Number(item.quantityOrdered),
-            received: Number(item.quantityReceived),
-          })),
-      });
+    // Step 8 — send delivery arrived email
+    // Import at top of file if not already imported:
+    // import { sendDeliveryArrivedEmail, getNotificationRecipients }
+    //   from '../../services/email.service'
+    try {
+      const recipients = await getNotificationRecipients()
+      if (recipients.length > 0) {
+        await sendDeliveryArrivedEmail(recipients, {
+          reference:     po.supplierReference ??
+                         `PO-${id.slice(0, 8)}`,
+          supplierName:  po.supplier.name,
+          receivedDate:  new Date().toLocaleDateString('en-GB'),
+          itemsReceived: stockMovements.map(m => {
+            const poItem = [...poItemMap.values()]
+              .find(i => i.productId === m.productId)!
+            return {
+              name:     poItem.productId,
+              ordered:  Number(poItem.quantityOrdered),
+              received: m.quantity,
+            }
+          }),
+        })
+      }
+    } catch (emailErr) {
+      // Do not fail the receive if email fails
+      console.error('Delivery email error:', emailErr)
     }
-  } catch (err) {
-    logger.error(err, 'Delivery email error');
-  }
 
-  return received;
+    return updatedPO
+  })
 }
 
-// ─── Cancel purchase order ──────────────────────────────
+// ─── Cancel purchase order ─────────────────────────────
+// Sets status to cancelled.
+// Only admin or manager can cancel.
 export async function cancelPurchaseOrder(
   id: string,
   userId: string,
@@ -394,22 +488,32 @@ export async function cancelPurchaseOrder(
   });
   if (!order) throw new NotFoundError('Purchase order');
 
-  // Cannot cancel an already received order —
-  // stock has already been added to the ledger
+  // Business rule — you cannot cancel a received order.
   if (order.status === 'received') {
     throw new ConflictError(
-      'Cannot cancel a received order — stock has already been added'
+      `Cannot cancel a purchase order with status: ${order.status}. ` +
+      `Received orders cannot be cancelled.`
     );
-  }
-
-  if (order.status === 'cancelled') {
-    throw new ConflictError('Order is already cancelled');
   }
 
   return db.$transaction(async (tx) => {
     const cancelled = await tx.purchaseOrder.update({
       where: { id },
-      data: { status: 'cancelled' },
+      data: {
+        status: 'cancelled',
+      },
+      include: {
+        supplier:  { select: { id: true, name: true } },
+        createdBy: { select: { id: true, name: true } },
+        approvedBy:{ select: { id: true, name: true } },
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, sku: true }
+            },
+          },
+        },
+      },
     });
 
     await tx.auditLog.create({
