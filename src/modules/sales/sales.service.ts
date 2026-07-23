@@ -101,15 +101,22 @@ export async function createSale(
     const unitPrice  = saleType === 'wholesale'
       ? Number(price.wholesalePrice)
       : Number(price.retailPrice)
+    // Cost snapshot — what we paid for this item
+    // This is snapshotted forever at time of sale
+    const unitCostAtSale = Number(price.costPrice)
     const discountMult  = 1 - (item.discountPct / 100)
     const lineTotal     = unitPrice * discountMult * item.quantity
+    // COGS for this line = cost × quantity
+    const cogsTotal = unitCostAtSale * item.quantity
     return {
-      productId:   item.productId,
-      productName: product.name,
-      quantity:    item.quantity,
+      productId:       item.productId,
+      productName:     product.name,
+      quantity:        item.quantity,
       unitPrice,
-      discountPct: item.discountPct,
+      discountPct:     item.discountPct,
       lineTotal,
+      unitCostAtSale,  // snapshot
+      cogsTotal,       // snapshot
     }
   })
 
@@ -158,11 +165,13 @@ export async function createSale(
           createdBy:   { connect: { id: userId } },
           items: {
             create: itemsWithTotals.map(item => ({
-              product:    { connect: { id: item.productId } },
-              quantity:   item.quantity,
-              unitPrice:  item.unitPrice,
-              discountPct: item.discountPct,
-              lineTotal:  item.lineTotal,
+              product:       { connect: { id: item.productId } },
+              quantity:      item.quantity,
+              unitPrice:     item.unitPrice,
+              discountPct:   item.discountPct,
+              lineTotal:     item.lineTotal,
+              unitCostAtSale: item.unitCostAtSale,  // persist snapshot
+              cogsTotal:     item.cogsTotal,        // persist snapshot
             })),
           },
         },

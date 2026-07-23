@@ -244,4 +244,82 @@ describe('Sales Service', () => {
 
     expect(res.status).toBe(400);
   });
-});
+
+  describe('Financial correctness - COGS snapshot', () => {
+
+    it('stores cost snapshot at time of sale', async () => {
+      const product = await getProductWithStock();
+
+      const res = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          type:  'retail',
+          items: [{
+            productId: product.id,
+            quantity:  1,
+          }],
+        });
+
+      expect(res.status).toBe(201);
+
+      const saleItem = res.body.data.items[0];
+
+      // Cost snapshot must be stored
+      expect(Number(saleItem.unitCostAtSale)).toBeGreaterThan(0);
+      expect(Number(saleItem.cogsTotal)).toBeGreaterThan(0);
+
+      // cogsTotal = unitCostAtSale × quantity
+      expect(Number(saleItem.cogsTotal)).toBeCloseTo(
+        Number(saleItem.unitCostAtSale) * Number(saleItem.quantity),
+        2
+      );
+    })
+
+    it('P&L does not change when cost price is updated', async () => {
+      const product = await getProductWithStock();
+
+      // Make a sale
+      const saleRes = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          type:  'retail',
+          items: [{ productId: product.id, quantity: 1 }],
+        })
+
+      expect(saleRes.status).toBe(201)
+
+      const today = new Date().toISOString().split('T')[0]
+
+      // Get P&L before price change
+      const plBefore = await request(app)
+        .get(`/api/reports/profit-loss?from=${today}&to=${today}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+
+      const cogsBefore = Number(plBefore.body.data.summary.totalCost)
+
+      // Update cost price to a very different value
+      await request(app)
+        .put(`/api/products/${product.id}/price`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          costPrice:     999.99,
+          retailPrice:   1999.99,
+          wholesalePrice: 1499.99,
+          note:          'Test price change',
+        })
+
+      // Get P&L after price change
+      const plAfter = await request(app)
+        .get(`/api/reports/profit-loss?from=${today}&to=${today}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+
+      const cogsAfter = Number(plAfter.body.data.summary.totalCost)
+
+      // COGS must be identical — price change should not affect it
+      expect(cogsAfter).toBe(cogsBefore)
+    })
+
+  })
+})

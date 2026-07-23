@@ -107,54 +107,48 @@ export async function getProfitLoss(from: Date, to: Date) {
     },
   });
 
-  const saleMovements = await db.stockMovement.findMany({
-    where: { type: 'sale', createdAt: { gte: from, lte: to } },
-    include: { product: { select: { id: true, name: true } } },
-  });
+  // Aggregate by product using STORED snapshots
+  // Never use current priceHistory here
+  const byProduct = new Map<string, {
+    name:        string
+    revenue:     number
+    cogs:        number
+    quantity:    number
+    orderCount:  number
+  }>();
 
-  const totalRevenue = sales.reduce(
-    (sum, sale) => sum + Number(sale.totalAmount), 0
-  );
-
-  const productIds = [...new Set(saleMovements.map((m) => m.productId))];
-
-  const costByProduct: Record<string, number> = {};
-  for (const productId of productIds) {
-    const latestPurchase = await db.stockMovement.findFirst({
-      where: { productId, type: 'purchase' },
-      orderBy: { createdAt: 'desc' },
-    });
-    costByProduct[productId] = Number(latestPurchase?.unitCost ?? 0);
-  }
-
-  const totalCost = saleMovements.reduce((sum, movement) => {
-    const unitCost = costByProduct[movement.productId] ?? 0;
-    return sum + unitCost * Number(movement.quantity);
-  }, 0);
-
-  const grossProfit = totalRevenue - totalCost;
-  const grossMargin =
-    totalRevenue > 0
-      ? Math.round((grossProfit / totalRevenue) * 100 * 100) / 100
-      : 0;
-
-  const byProduct: Record<
-    string,
-    { name: string; revenue: number; quantity: number; cost: number; profit: number }
-  > = {};
+  let totalRevenue = 0
+  let totalCogs    = 0
 
   for (const sale of sales) {
     for (const item of sale.items) {
-      const pid = item.product.id;
-      if (!byProduct[pid]) {
-        byProduct[pid] = { name: item.product.name, revenue: 0, quantity: 0, cost: 0, profit: 0 };
+      totalRevenue += Number(item.lineTotal)
+
+      // Use stored snapshot — not current cost
+      totalCogs += Number(item.cogsTotal)
+
+      const existing = byProduct.get(item.productId)
+      if (!existing) {
+        byProduct.set(item.productId, {
+          name:       item.product.name,
+          revenue:    Number(item.lineTotal),
+          cogs:       Number(item.cogsTotal),
+          quantity:   Number(item.quantity),
+          orderCount: 1,
+        })
+      } else {
+        existing.revenue    += Number(item.lineTotal)
+        existing.cogs       += Number(item.cogsTotal)
+        existing.quantity   += Number(item.quantity)
+        existing.orderCount += 1
       }
-      byProduct[pid].revenue  += Number(item.lineTotal);
-      byProduct[pid].quantity += Number(item.quantity);
-      byProduct[pid].cost     += (costByProduct[pid] ?? 0) * Number(item.quantity);
-      byProduct[pid].profit    = byProduct[pid].revenue - byProduct[pid].cost;
     }
   }
+
+  const grossProfit = totalRevenue - totalCogs
+  const grossMargin = totalRevenue > 0
+    ? ((grossProfit / totalRevenue) * 100).toFixed(2)
+    : '0.00'
 
   return {
     period: {
@@ -162,26 +156,26 @@ export async function getProfitLoss(from: Date, to: Date) {
       to:   to.toISOString().split('T')[0],
     },
     summary: {
-      revenue:     totalRevenue.toFixed(2),
-      COSTS:        totalCost.toFixed(2),
-      grossProfit: grossProfit.toFixed(2),
-      marginPct:   grossMargin.toFixed(2),
+      totalRevenue:  Math.round(totalRevenue * 100) / 100,
+      totalCost:     Math.round(totalCogs * 100) / 100,
+      grossProfit:   Math.round(grossProfit * 100) / 100,
+      grossMargin,
+      totalOrders:   sales.length,
     },
-    byProduct: Object.entries(byProduct)
-      .map(([productId, d]) => {
-        const marginPct = d.revenue > 0 ? (d.profit / d.revenue) * 100 : 0;
-        return {
-          productId,
-          productName: d.name,
-          unitsSold:   d.quantity,
-          revenue:     d.revenue.toFixed(2),
-          COSTS:        d.cost.toFixed(2),
-          profit:      d.profit.toFixed(2),
-          marginPct:   marginPct.toFixed(2),
-        };
-      })
-      .sort((a, b) => Number(b.revenue) - Number(a.revenue)),
-  };
+    byProduct: [...byProduct.values()]
+      .map(p => ({
+        name:       p.name,
+        revenue:    Math.round(p.revenue * 100) / 100,
+        cost:       Math.round(p.cogs * 100) / 100,
+        profit:     Math.round((p.revenue - p.cogs) * 100) / 100,
+        margin:     p.revenue > 0
+          ? ((p.revenue - p.cogs) / p.revenue * 100).toFixed(2)
+          : '0.00',
+        quantity:   p.quantity,
+        orderCount: p.orderCount,
+      }))
+      .sort((a, b) => b.profit - a.profit),
+  }
 }
 
 // ─── Top selling products ───────────────────────────────
@@ -318,6 +312,14 @@ export async function getSalesAuditReport(from: Date, to: Date, type?: string) {
       unitPrice:   Number(i.unitPrice),
       discountPct: Number(i.discountPct),
       lineTotal:   Number(i.lineTotal),
+      unitCostAtSale: Number(i.unitCostAtSale),  // snapshot
+      cogsTotal:      Number(i.cogsTotal),        // snapshot
+      grossProfit:    Number(i.lineTotal) -
+                      Number(i.cogsTotal),        // computed
+      margin:         Number(i.lineTotal) > 0
+        ? (((Number(i.lineTotal) - Number(i.cogsTotal))
+            / Number(i.lineTotal)) * 100).toFixed(2)
+        : '0.00',
     })),
   }));
 
